@@ -1,5 +1,5 @@
-import { BaseConnector, ConnectorConfig, UnifiedResponse } from '../types';
-import { executeRequest } from '../executor';
+import { BaseConnector, ConnectorConfig, UnifiedResponse } from '@/connectors/baseConnector';
+import { executeRequest } from '@/core/executor';
 
 export class OpenAIConnector extends BaseConnector {
   private baseUrl = 'https://api.openai.com/v1';
@@ -9,10 +9,10 @@ export class OpenAIConnector extends BaseConnector {
   }
 
   protected validateConfig(config: ConnectorConfig): void {
-    if (!config.apiKey) throw new Error('OpenAI connector requires an apiKey');
+    if (!config.apiKey) throw new Error('OpenAI connector requires apiKey (OPENAI_KEY)');
   }
 
-  getSupportedActions() {
+  getSupportedActions(): string[] {
     return ['generateText', 'generateImage'];
   }
 
@@ -44,27 +44,34 @@ export class OpenAIConnector extends BaseConnector {
   outputMapper(action: string, response: any): any {
     switch (action) {
       case 'generateText':
-        return { text: response.choices?.[0]?.message?.content, model: response.model, usage: response.usage };
+        return {
+          text: response.choices?.[0]?.message?.content,
+          model: response.model,
+          usage: response.usage,
+        };
       case 'generateImage':
-        return { url: response.data?.[0]?.url, revisedPrompt: response.data?.[0]?.revised_prompt };
+        return {
+          url: response.data?.[0]?.url,
+          revisedPrompt: response.data?.[0]?.revised_prompt,
+        };
       default:
         return response;
     }
   }
 
   async execute(action: string, data: any): Promise<UnifiedResponse> {
-    const endpoints: Record<string, { url: string; method: 'POST' }> = {
-      generateText: { url: `${this.baseUrl}/chat/completions`, method: 'POST' },
-      generateImage: { url: `${this.baseUrl}/images/generations`, method: 'POST' },
+    const endpoints: Record<string, string> = {
+      generateText: `${this.baseUrl}/chat/completions`,
+      generateImage: `${this.baseUrl}/images/generations`,
     };
 
-    const endpoint = endpoints[action];
-    if (!endpoint) return { success: false, error: `OpenAI: unknown action "${action}"` };
+    const url = endpoints[action];
+    if (!url) return { success: false, error: `OpenAI: unknown action "${action}". Supported: ${this.getSupportedActions().join(', ')}` };
 
     const mappedInput = this.inputMapper(action, data);
     const result = await executeRequest({
-      url: endpoint.url,
-      method: endpoint.method,
+      url,
+      method: 'POST',
       headers: this.injectAuth({}),
       body: mappedInput,
     });

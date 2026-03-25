@@ -1,5 +1,5 @@
-import { BaseConnector, ConnectorConfig, UnifiedResponse } from '../types';
-import { executeRequest } from '../executor';
+import { BaseConnector, ConnectorConfig, UnifiedResponse } from '@/connectors/baseConnector';
+import { executeRequest } from '@/core/executor';
 
 export class SendGridConnector extends BaseConnector {
   private baseUrl = 'https://api.sendgrid.com/v3';
@@ -9,10 +9,10 @@ export class SendGridConnector extends BaseConnector {
   }
 
   protected validateConfig(config: ConnectorConfig): void {
-    if (!config.apiKey) throw new Error('SendGrid connector requires an apiKey');
+    if (!config.apiKey) throw new Error('SendGrid connector requires apiKey (SENDGRID_KEY)');
   }
 
-  getSupportedActions() {
+  getSupportedActions(): string[] {
     return ['sendEmail'];
   }
 
@@ -23,9 +23,19 @@ export class SendGridConnector extends BaseConnector {
   inputMapper(action: string, data: any): any {
     if (action === 'sendEmail') {
       return {
-        personalizations: [{ to: [{ email: data.to }], subject: data.subject }],
+        personalizations: [
+          {
+            to: [{ email: data.to }],
+            subject: data.subject,
+          },
+        ],
         from: { email: data.from },
-        content: [{ type: data.html ? 'text/html' : 'text/plain', value: data.body || data.html }],
+        content: [
+          {
+            type: data.html ? 'text/html' : 'text/plain',
+            value: data.body || data.html,
+          },
+        ],
       };
     }
     return data;
@@ -33,14 +43,14 @@ export class SendGridConnector extends BaseConnector {
 
   outputMapper(action: string, response: any): any {
     if (action === 'sendEmail') {
-      return { sent: true, messageId: response?.headers?.['x-message-id'] || 'ok' };
+      return { sent: true, messageId: response?.headers?.['x-message-id'] || 'accepted' };
     }
     return response;
   }
 
   async execute(action: string, data: any): Promise<UnifiedResponse> {
     if (action !== 'sendEmail') {
-      return { success: false, error: `SendGrid: unknown action "${action}"` };
+      return { success: false, error: `SendGrid: unknown action "${action}". Supported: ${this.getSupportedActions().join(', ')}` };
     }
 
     const mappedInput = this.inputMapper(action, data);

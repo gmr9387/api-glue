@@ -1,4 +1,12 @@
-import { ExecutorOptions, UnifiedResponse } from './types';
+import { UnifiedResponse } from '@/connectors/baseConnector';
+
+export interface ExecutorOptions {
+  url: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  headers?: Record<string, string>;
+  body?: any;
+  retries?: number;
+}
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -27,6 +35,7 @@ export async function executeRequest(options: ExecutorOptions): Promise<UnifiedR
 
       return { success: true, data };
     } catch (err: any) {
+      console.error(`[Executor] Attempt ${attempt}/${retries} failed:`, err.message);
       if (attempt === retries) {
         return {
           success: false,

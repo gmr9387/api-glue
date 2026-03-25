@@ -9,14 +9,6 @@ export interface ConnectorConfig {
   [key: string]: any;
 }
 
-export interface ExecutorOptions {
-  url: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  headers?: Record<string, string>;
-  body?: any;
-  retries?: number;
-}
-
 export abstract class BaseConnector {
   protected config: ConnectorConfig;
   protected serviceName: string;

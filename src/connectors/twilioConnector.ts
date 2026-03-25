@@ -1,5 +1,5 @@
-import { BaseConnector, ConnectorConfig, UnifiedResponse } from '../types';
-import { executeRequest } from '../executor';
+import { BaseConnector, ConnectorConfig, UnifiedResponse } from '@/connectors/baseConnector';
+import { executeRequest } from '@/core/executor';
 
 export class TwilioConnector extends BaseConnector {
   private baseUrl: string;
@@ -10,12 +10,12 @@ export class TwilioConnector extends BaseConnector {
   }
 
   protected validateConfig(config: ConnectorConfig): void {
-    if (!config.apiKey) throw new Error('Twilio connector requires an apiKey (auth token)');
-    if (!config.accountSid) throw new Error('Twilio connector requires an accountSid');
+    if (!config.apiKey) throw new Error('Twilio connector requires apiKey (TWILIO_TOKEN)');
+    if (!config.accountSid) throw new Error('Twilio connector requires accountSid (TWILIO_SID)');
     if (!config.phoneNumber) throw new Error('Twilio connector requires a phoneNumber');
   }
 
-  getSupportedActions() {
+  getSupportedActions(): string[] {
     return ['sendMessage'];
   }
 
@@ -26,21 +26,30 @@ export class TwilioConnector extends BaseConnector {
 
   inputMapper(action: string, data: any): any {
     if (action === 'sendMessage') {
-      return { To: data.to, From: this.config.phoneNumber, Body: data.body };
+      return {
+        To: data.to,
+        From: this.config.phoneNumber,
+        Body: data.body,
+      };
     }
     return data;
   }
 
   outputMapper(action: string, response: any): any {
     if (action === 'sendMessage') {
-      return { sid: response.sid, status: response.status, to: response.to, body: response.body };
+      return {
+        sid: response.sid,
+        status: response.status,
+        to: response.to,
+        body: response.body,
+      };
     }
     return response;
   }
 
   async execute(action: string, data: any): Promise<UnifiedResponse> {
     if (action !== 'sendMessage') {
-      return { success: false, error: `Twilio: unknown action "${action}"` };
+      return { success: false, error: `Twilio: unknown action "${action}". Supported: ${this.getSupportedActions().join(', ')}` };
     }
 
     const mappedInput = this.inputMapper(action, data);

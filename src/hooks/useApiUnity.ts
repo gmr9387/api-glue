@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { apiManager } from '@/lib/api-unity';
-import { registry } from '@/lib/api-unity/registry';
+import { apiManager } from '@/core/apiManager';
+import { registry } from '@/core/connectorRegistry';
 import '@/lib/api-unity'; // trigger factory registration
 
 interface LogEntry {
@@ -43,12 +43,7 @@ export function useApiUnity() {
 
   const execute = async (serviceAction: string, data: any = {}) => {
     const id = crypto.randomUUID();
-    const entry: LogEntry = {
-      id,
-      timestamp: new Date(),
-      serviceAction,
-      status: 'pending',
-    };
+    const entry: LogEntry = { id, timestamp: new Date(), serviceAction, status: 'pending' };
     setLogs(prev => [entry, ...prev].slice(0, 50));
 
     const start = performance.now();

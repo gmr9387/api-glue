@@ -1,5 +1,5 @@
-import { BaseConnector, ConnectorConfig, UnifiedResponse } from '../types';
-import { executeRequest } from '../executor';
+import { BaseConnector, ConnectorConfig, UnifiedResponse } from '@/connectors/baseConnector';
+import { executeRequest } from '@/core/executor';
 
 export class StripeConnector extends BaseConnector {
   private baseUrl = 'https://api.stripe.com/v1';
@@ -9,10 +9,10 @@ export class StripeConnector extends BaseConnector {
   }
 
   protected validateConfig(config: ConnectorConfig): void {
-    if (!config.apiKey) throw new Error('Stripe connector requires an apiKey');
+    if (!config.apiKey) throw new Error('Stripe connector requires apiKey (STRIPE_KEY)');
   }
 
-  getSupportedActions() {
+  getSupportedActions(): string[] {
     return ['charge', 'refund', 'createCustomer'];
   }
 
@@ -23,7 +23,12 @@ export class StripeConnector extends BaseConnector {
   inputMapper(action: string, data: any): any {
     switch (action) {
       case 'charge':
-        return { amount: data.amount, currency: data.currency || 'usd', source: data.source, description: data.description };
+        return {
+          amount: data.amount,
+          currency: data.currency || 'usd',
+          source: data.source,
+          description: data.description,
+        };
       case 'refund':
         return { charge: data.chargeId, amount: data.amount };
       case 'createCustomer':
@@ -47,19 +52,19 @@ export class StripeConnector extends BaseConnector {
   }
 
   async execute(action: string, data: any): Promise<UnifiedResponse> {
-    const endpoints: Record<string, { url: string; method: 'POST' }> = {
-      charge: { url: `${this.baseUrl}/charges`, method: 'POST' },
-      refund: { url: `${this.baseUrl}/refunds`, method: 'POST' },
-      createCustomer: { url: `${this.baseUrl}/customers`, method: 'POST' },
+    const endpoints: Record<string, string> = {
+      charge: `${this.baseUrl}/charges`,
+      refund: `${this.baseUrl}/refunds`,
+      createCustomer: `${this.baseUrl}/customers`,
     };
 
-    const endpoint = endpoints[action];
-    if (!endpoint) return { success: false, error: `Stripe: unknown action "${action}"` };
+    const url = endpoints[action];
+    if (!url) return { success: false, error: `Stripe: unknown action "${action}". Supported: ${this.getSupportedActions().join(', ')}` };
 
     const mappedInput = this.inputMapper(action, data);
     const result = await executeRequest({
-      url: endpoint.url,
-      method: endpoint.method,
+      url,
+      method: 'POST',
       headers: this.injectAuth({}),
       body: mappedInput,
     });
