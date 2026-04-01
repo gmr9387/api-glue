@@ -21,7 +21,7 @@ export function RequestBuilder() {
   useEffect(() => {
     if (selectedService && selectedAction) {
       // Set sensible default payloads
-      const defaults: Record<string, Record<string, string>> = {
+      const defaults: Record<string, string> = {
         'openai.generateText': JSON.stringify({ prompt: 'Write a short poem about APIs' }, null, 2),
         'openai.generateImage': JSON.stringify({ prompt: 'A futuristic API dashboard' }, null, 2),
         'stripe.charge': JSON.stringify({ amount: 1000, currency: 'usd', source: 'tok_visa' }, null, 2),
@@ -31,7 +31,7 @@ export function RequestBuilder() {
         'twilio.sendMessage': JSON.stringify({ to: '+1234567890', body: 'Hello from API Unity OS' }, null, 2),
       };
       const key = `${selectedService}.${selectedAction}`;
-      if (defaults[key]) setPayload(defaults[key] as string);
+      if (defaults[key]) setPayload(defaults[key]);
     }
   }, [selectedService, selectedAction]);
 
