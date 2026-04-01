@@ -69,7 +69,7 @@ export const useApiStore = create<ApiState>((set, get) => ({
   response: null,
   loading: false,
 
-  connect: (serviceName, config) => {
+  connect: (serviceName: string, config: any) => {
     try {
       apiManager.connect(serviceName, config);
       const connector = registry.get(serviceName);
