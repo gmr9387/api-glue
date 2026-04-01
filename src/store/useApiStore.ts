@@ -46,7 +46,7 @@ interface ApiState {
   response: any | null;
   loading: boolean;
 
-  connect: (serviceName: string, config: Record<string, string>) => { success: boolean; error?: string };
+  connect: (serviceName: string, config: any) => { success: boolean; error?: string };
   disconnect: (serviceName: string) => void;
   execute: (serviceAction: string, data: any) => Promise<any>;
   setSelectedService: (service: string | null) => void;
