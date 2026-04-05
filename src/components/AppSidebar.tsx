@@ -1,4 +1,4 @@
-import { LayoutDashboard, Plug, Play, GitBranch } from 'lucide-react';
+import { LayoutDashboard, Plug, Play, GitBranch, Sparkles } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import {
