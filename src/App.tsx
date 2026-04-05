@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Connectors from "./pages/Connectors";
 import Playground from "./pages/Playground";
 import Workflows from "./pages/Workflows";
+import AIBuilder from "./pages/AIBuilder";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
