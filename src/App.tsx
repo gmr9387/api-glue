@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Connectors from "./pages/Connectors";
 import Playground from "./pages/Playground";
 import Workflows from "./pages/Workflows";
+import AIBuilder from "./pages/AIBuilder";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
                   <Route path="/connectors" element={<Connectors />} />
                   <Route path="/playground" element={<Playground />} />
                   <Route path="/workflows" element={<Workflows />} />
+                  <Route path="/ai-builder" element={<AIBuilder />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
