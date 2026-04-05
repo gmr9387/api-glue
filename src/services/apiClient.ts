@@ -1,15 +1,15 @@
 import { useApiStore } from '@/store/useApiStore';
 
 /**
- * Thin client wrapper. All calls go through the Zustand store
- * which delegates to apiManager.execute("service.action", data).
+ * All API calls are routed through the backend edge function.
+ * No direct external API calls from the frontend.
  */
 export async function executeApi(serviceAction: string, data: any = {}) {
   return useApiStore.getState().execute(serviceAction, data);
 }
 
-export function connectService(name: string, config: Record<string, string>) {
-  return useApiStore.getState().connect(name, config);
+export function connectService(name: string) {
+  return useApiStore.getState().connect(name);
 }
 
 export function disconnectService(name: string) {

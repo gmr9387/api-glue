@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useApiStore, ConnectedService } from '@/store/useApiStore';
-import { CheckCircle, Plug, CreditCard, Brain, Mail, MessageSquare, Eye, EyeOff } from 'lucide-react';
+import { useApiStore } from '@/store/useApiStore';
+import { CheckCircle, Plug, CreditCard, Brain, Mail, MessageSquare } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface ConnectorDef {
@@ -11,40 +9,28 @@ interface ConnectorDef {
   label: string;
   icon: React.ElementType;
   description: string;
-  fields: { key: string; label: string; placeholder: string }[];
 }
 
 const CONNECTORS: ConnectorDef[] = [
   {
     name: 'stripe', label: 'Stripe', icon: CreditCard,
     description: 'Payment processing — charge, refund, create customers',
-    fields: [{ key: 'apiKey', label: 'Secret Key', placeholder: 'sk_test_...' }],
   },
   {
     name: 'openai', label: 'OpenAI', icon: Brain,
     description: 'AI models — generate text, create images',
-    fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'sk-...' }],
   },
   {
     name: 'sendgrid', label: 'SendGrid', icon: Mail,
     description: 'Email delivery — send transactional emails',
-    fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'SG...' }],
   },
   {
     name: 'twilio', label: 'Twilio', icon: MessageSquare,
     description: 'SMS & messaging — send text messages',
-    fields: [
-      { key: 'accountSid', label: 'Account SID', placeholder: 'AC...' },
-      { key: 'apiKey', label: 'Auth Token', placeholder: 'Token...' },
-      { key: 'phoneNumber', label: 'Phone Number', placeholder: '+1...' },
-    ],
   },
 ];
 
 export function ConnectorCard({ connector }: { connector: typeof CONNECTORS[0] }) {
-  const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState<Record<string, string>>({});
-  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const connect = useApiStore(s => s.connect);
   const disconnect = useApiStore(s => s.disconnect);
   const connectedServices = useApiStore(s => s.connectedServices);
@@ -53,11 +39,9 @@ export function ConnectorCard({ connector }: { connector: typeof CONNECTORS[0] }
   const Icon = connector.icon;
 
   const handleConnect = () => {
-    const result = connect(connector.name, formData);
+    const result = connect(connector.name);
     if (result.success) {
-      setOpen(false);
-      setFormData({});
-      toast({ title: `${connector.label} connected`, description: 'Service is ready to use.' });
+      toast({ title: `${connector.label} connected`, description: 'Service is ready. API keys are stored securely on the server.' });
     } else {
       toast({ title: 'Connection failed', description: result.error, variant: 'destructive' });
     }
@@ -95,51 +79,16 @@ export function ConnectorCard({ connector }: { connector: typeof CONNECTORS[0] }
           <div className="flex gap-2">
             <span className="flex-1 flex items-center gap-1.5 text-xs font-mono text-primary">
               <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
-              Connected securely
+              Keys stored on server
             </span>
             <Button variant="ghost" size="sm" onClick={handleDisconnect} className="text-xs text-muted-foreground hover:text-destructive">
               Disconnect
             </Button>
           </div>
         ) : (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full text-xs font-mono">
-                <Plug className="h-3 w-3 mr-1.5" /> Connect
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="glass-panel border-border/50">
-              <DialogHeader>
-                <DialogTitle className="font-display">Connect {connector.label}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-2">
-                {connector.fields.map(field => (
-                  <div key={field.key}>
-                    <label className="text-xs font-mono text-muted-foreground mb-1.5 block">{field.label}</label>
-                    <div className="relative">
-                      <Input
-                        type={showKeys[field.key] ? 'text' : 'password'}
-                        placeholder={field.placeholder}
-                        value={formData[field.key] || ''}
-                        onChange={e => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                        className="h-9 font-mono text-xs bg-muted border-border/50 pr-9"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowKeys(prev => ({ ...prev, [field.key]: !prev[field.key] }))}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showKeys[field.key] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                <Button onClick={handleConnect} className="w-full text-xs font-mono">
-                  Connect {connector.label}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button variant="outline" size="sm" className="w-full text-xs font-mono" onClick={handleConnect}>
+            <Plug className="h-3 w-3 mr-1.5" /> Connect
+          </Button>
         )}
       </div>
     </div>

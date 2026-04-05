@@ -1,7 +1,12 @@
 import { create } from 'zustand';
-import { apiManager } from '@/core/apiManager';
-import { registry } from '@/core/connectorRegistry';
-import '@/lib/api-unity';
+import { supabase } from '@/integrations/supabase/client';
+
+const SUPPORTED_ACTIONS: Record<string, string[]> = {
+  stripe: ['charge', 'refund', 'createCustomer'],
+  openai: ['generateText', 'generateImage'],
+  sendgrid: ['sendEmail'],
+  twilio: ['sendMessage'],
+};
 
 export interface ConnectedService {
   name: string;
@@ -46,7 +51,7 @@ interface ApiState {
   response: any | null;
   loading: boolean;
 
-  connect: (serviceName: string, config: any) => { success: boolean; error?: string };
+  connect: (serviceName: string) => { success: boolean; error?: string };
   disconnect: (serviceName: string) => void;
   execute: (serviceAction: string, data: any) => Promise<any>;
   setSelectedService: (service: string | null) => void;
@@ -69,28 +74,32 @@ export const useApiStore = create<ApiState>((set, get) => ({
   response: null,
   loading: false,
 
-  connect: (serviceName: string, config: any) => {
-    try {
-      apiManager.connect(serviceName, config);
-      const connector = registry.get(serviceName);
-      set(s => ({
-        connectedServices: [
-          ...s.connectedServices.filter(c => c.name !== serviceName),
-          { name: serviceName, actions: connector?.getSupportedActions() || [], connectedAt: new Date() },
-        ],
-      }));
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message };
+  connect: (serviceName: string) => {
+    const actions = SUPPORTED_ACTIONS[serviceName];
+    if (!actions) {
+      return { success: false, error: `Unknown service "${serviceName}". Available: ${Object.keys(SUPPORTED_ACTIONS).join(', ')}` };
     }
+    set(s => ({
+      connectedServices: [
+        ...s.connectedServices.filter(c => c.name !== serviceName),
+        { name: serviceName, actions, connectedAt: new Date() },
+      ],
+    }));
+    return { success: true };
   },
 
   disconnect: (serviceName) => {
-    apiManager.disconnect(serviceName);
     set(s => ({ connectedServices: s.connectedServices.filter(c => c.name !== serviceName) }));
   },
 
   execute: async (serviceAction, data) => {
+    const dotIndex = serviceAction.indexOf('.');
+    if (dotIndex === -1) {
+      return { success: false, error: `Invalid format. Expected "service.action"` };
+    }
+    const service = serviceAction.substring(0, dotIndex);
+    const action = serviceAction.substring(dotIndex + 1);
+
     const id = crypto.randomUUID();
     set(s => ({
       loading: true,
@@ -99,7 +108,22 @@ export const useApiStore = create<ApiState>((set, get) => ({
     }));
 
     const start = performance.now();
-    const result = await apiManager.execute(serviceAction, data);
+    let result: any;
+
+    try {
+      const { data: respData, error } = await supabase.functions.invoke('execute-api', {
+        body: { service, action, data },
+      });
+
+      if (error) {
+        result = { success: false, error: error.message };
+      } else {
+        result = respData;
+      }
+    } catch (err: any) {
+      result = { success: false, error: err.message };
+    }
+
     const duration = Math.round(performance.now() - start);
 
     set(s => ({
