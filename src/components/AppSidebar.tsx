@@ -21,6 +21,7 @@ const navItems = [
   { title: 'Connectors', url: '/connectors', icon: Plug },
   { title: 'Playground', url: '/playground', icon: Play },
   { title: 'Workflows', url: '/workflows', icon: GitBranch },
+  { title: 'AI Builder', url: '/ai-builder', icon: Sparkles },
 ];
 
 export function AppSidebar() {

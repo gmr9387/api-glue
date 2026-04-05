@@ -32,6 +32,7 @@ const App = () => (
                   <Route path="/connectors" element={<Connectors />} />
                   <Route path="/playground" element={<Playground />} />
                   <Route path="/workflows" element={<Workflows />} />
+                  <Route path="/ai-builder" element={<AIBuilder />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
