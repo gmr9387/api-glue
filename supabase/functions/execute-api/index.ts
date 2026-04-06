@@ -39,7 +39,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    const result = await executeAction(service, action, data || {});
+    // Detect mock mode: if credentials are missing, return mock response
+    const isMock = !hasCredentials(service);
+    let result: Record<string, unknown>;
+
+    if (isMock) {
+      console.log(`[execute-api] MOCK mode for ${service}.${action}`);
+      result = { success: true, data: getMockResponse(service, action, data || {}), mock: true };
+    } else {
+      console.log(`[execute-api] LIVE mode for ${service}.${action}`);
+      result = await executeAction(service, action, data || {});
+    }
 
     return new Response(JSON.stringify(result), {
       status: result.success ? 200 : 502,
@@ -55,6 +65,41 @@ Deno.serve(async (req) => {
   }
 });
 
+// ─── CREDENTIAL DETECTION ────────────────────────────────
+function hasCredentials(service: string): boolean {
+  switch (service) {
+    case "stripe": return !!Deno.env.get("STRIPE_KEY");
+    case "openai": return !!Deno.env.get("OPENAI_KEY");
+    case "sendgrid": return !!Deno.env.get("SENDGRID_KEY");
+    case "twilio": return !!Deno.env.get("TWILIO_SID") && !!Deno.env.get("TWILIO_TOKEN") && !!Deno.env.get("TWILIO_PHONE");
+    default: return false;
+  }
+}
+
+// ─── MOCK RESPONSES ─────────────────────────────────────
+function getMockResponse(service: string, action: string, data: Record<string, unknown>): Record<string, unknown> {
+  const mocks: Record<string, Record<string, (d: Record<string, unknown>) => Record<string, unknown>>> = {
+    stripe: {
+      charge: (d) => ({ id: "ch_mock_" + Date.now(), amount: d.amount || 1000, currency: d.currency || "usd", status: "succeeded" }),
+      refund: (d) => ({ id: "re_mock_" + Date.now(), amount: d.amount || 1000, status: "succeeded" }),
+      createCustomer: (d) => ({ id: "cus_mock_" + Date.now(), email: d.email || "mock@example.com", name: d.name || null }),
+    },
+    openai: {
+      generateText: (d) => ({ text: `This is a mock AI-generated response based on: "${d.prompt || "no prompt"}"`, model: "gpt-4o-mini-mock", usage: { prompt_tokens: 12, completion_tokens: 24, total_tokens: 36 } }),
+      generateImage: (d) => ({ url: "https://via.placeholder.com/512x512.png?text=Mock+Image", revisedPrompt: d.prompt || "mock prompt" }),
+    },
+    sendgrid: {
+      sendEmail: (d) => ({ sent: true, message: "Mock email sent successfully", to: d.to || "mock@example.com" }),
+    },
+    twilio: {
+      sendMessage: (d) => ({ sid: "SM_mock_" + Date.now(), status: "sent", to: d.to || "+10000000000", body: d.body || "" }),
+    },
+  };
+
+  return mocks[service]?.[action]?.(data) ?? { message: "Mock response" };
+}
+
+// ─── LIVE EXECUTION ──────────────────────────────────────
 function getEnvOrThrow(name: string): string {
   const val = Deno.env.get(name);
   if (!val) throw new Error(`Server secret "${name}" is not configured. Please add it in project settings.`);
@@ -75,52 +120,28 @@ async function executeAction(service: string, action: string, data: Record<strin
 async function executeStripe(action: string, data: Record<string, unknown>) {
   const key = getEnvOrThrow("STRIPE_KEY");
   const baseUrl = "https://api.stripe.com/v1";
-
-  const endpoints: Record<string, string> = {
-    charge: `${baseUrl}/charges`,
-    refund: `${baseUrl}/refunds`,
-    createCustomer: `${baseUrl}/customers`,
-  };
+  const endpoints: Record<string, string> = { charge: `${baseUrl}/charges`, refund: `${baseUrl}/refunds`, createCustomer: `${baseUrl}/customers` };
 
   const inputMappers: Record<string, (d: Record<string, unknown>) => Record<string, string>> = {
-    charge: (d) => ({
-      amount: String(d.amount || ""),
-      currency: String(d.currency || "usd"),
-      source: String(d.source || ""),
-      ...(d.description ? { description: String(d.description) } : {}),
-    }),
-    refund: (d) => ({
-      charge: String(d.chargeId || ""),
-      ...(d.amount ? { amount: String(d.amount) } : {}),
-    }),
-    createCustomer: (d) => ({
-      email: String(d.email || ""),
-      ...(d.name ? { name: String(d.name) } : {}),
-      ...(d.description ? { description: String(d.description) } : {}),
-    }),
+    charge: (d) => ({ amount: String(d.amount || ""), currency: String(d.currency || "usd"), source: String(d.source || ""), ...(d.description ? { description: String(d.description) } : {}) }),
+    refund: (d) => ({ charge: String(d.chargeId || ""), ...(d.amount ? { amount: String(d.amount) } : {}) }),
+    createCustomer: (d) => ({ email: String(d.email || ""), ...(d.name ? { name: String(d.name) } : {}), ...(d.description ? { description: String(d.description) } : {}) }),
   };
 
   const mapped = inputMappers[action](data);
   const resp = await fetch(endpoints[action], {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams(mapped),
   });
-
   const body = await resp.json();
-  if (!resp.ok) {
-    return { success: false, error: `Stripe ${action} failed [${resp.status}]: ${body?.error?.message || JSON.stringify(body)}` };
-  }
+  if (!resp.ok) return { success: false, error: `Stripe ${action} failed [${resp.status}]: ${body?.error?.message || JSON.stringify(body)}` };
 
   const outputMappers: Record<string, (r: Record<string, unknown>) => Record<string, unknown>> = {
     charge: (r) => ({ id: r.id, amount: r.amount, status: r.status, currency: r.currency }),
     refund: (r) => ({ id: r.id, amount: r.amount, status: r.status }),
     createCustomer: (r) => ({ id: r.id, email: r.email, name: r.name }),
   };
-
   return { success: true, data: outputMappers[action](body) };
 }
 
@@ -133,12 +154,7 @@ async function executeOpenAI(action: string, data: Record<string, unknown>) {
     const resp = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: data.model || "gpt-4o-mini",
-        messages: [{ role: "user", content: data.prompt }],
-        max_tokens: data.maxTokens || 1000,
-        temperature: data.temperature ?? 0.7,
-      }),
+      body: JSON.stringify({ model: data.model || "gpt-4o-mini", messages: [{ role: "user", content: data.prompt }], max_tokens: data.maxTokens || 1000, temperature: data.temperature ?? 0.7 }),
     });
     const body = await resp.json();
     if (!resp.ok) return { success: false, error: `OpenAI error [${resp.status}]: ${body?.error?.message || JSON.stringify(body)}` };
@@ -162,24 +178,15 @@ async function executeOpenAI(action: string, data: Record<string, unknown>) {
 // ─── SENDGRID ────────────────────────────────────────────
 async function executeSendGrid(action: string, data: Record<string, unknown>) {
   const key = getEnvOrThrow("SENDGRID_KEY");
-
   if (action === "sendEmail") {
     const resp = await fetch("https://api.sendgrid.com/v3/mail/send", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: data.to }], subject: data.subject }],
-        from: { email: data.from },
-        content: [{ type: data.html ? "text/html" : "text/plain", value: data.body || data.html || data.text }],
-      }),
+      body: JSON.stringify({ personalizations: [{ to: [{ email: data.to }], subject: data.subject }], from: { email: data.from }, content: [{ type: data.html ? "text/html" : "text/plain", value: data.body || data.html || data.text }] }),
     });
-    if (!resp.ok) {
-      const body = await resp.text();
-      return { success: false, error: `SendGrid error [${resp.status}]: ${body}` };
-    }
+    if (!resp.ok) { const body = await resp.text(); return { success: false, error: `SendGrid error [${resp.status}]: ${body}` }; }
     return { success: true, data: { sent: true } };
   }
-
   return { success: false, error: `Unknown SendGrid action: ${action}` };
 }
 
@@ -188,25 +195,16 @@ async function executeTwilio(action: string, data: Record<string, unknown>) {
   const sid = getEnvOrThrow("TWILIO_SID");
   const token = getEnvOrThrow("TWILIO_TOKEN");
   const phoneNumber = getEnvOrThrow("TWILIO_PHONE");
-
   if (action === "sendMessage") {
     const encoded = btoa(`${sid}:${token}`);
     const resp = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
       method: "POST",
-      headers: {
-        Authorization: `Basic ${encoded}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        To: String(data.to || ""),
-        From: String(data.from || phoneNumber),
-        Body: String(data.body || ""),
-      }),
+      headers: { Authorization: `Basic ${encoded}`, "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ To: String(data.to || ""), From: String(data.from || phoneNumber), Body: String(data.body || "") }),
     });
     const body = await resp.json();
     if (!resp.ok) return { success: false, error: `Twilio error [${resp.status}]: ${body?.message || JSON.stringify(body)}` };
     return { success: true, data: { sid: body.sid, status: body.status, to: body.to, body: body.body } };
   }
-
   return { success: false, error: `Unknown Twilio action: ${action}` };
 }
