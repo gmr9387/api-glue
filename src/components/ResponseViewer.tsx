@@ -1,5 +1,5 @@
 import { useApiStore } from '@/store/useApiStore';
-import { CheckCircle, XCircle, Clock, Copy } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Copy, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 
@@ -22,6 +22,11 @@ export function ResponseViewer() {
         </h2>
         {response && (
           <div className="flex items-center gap-2">
+            {response.mock && (
+              <span className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
+                <FlaskConical className="h-3 w-3" /> Mock
+              </span>
+            )}
             {response.duration !== undefined && (
               <span className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
                 <Clock className="h-3 w-3" /> {response.duration}ms
