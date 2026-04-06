@@ -14,7 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      api_requests: {
+        Row: {
+          action: string
+          created_at: string
+          duration_ms: number | null
+          id: string
+          mock: boolean
+          request_data: Json | null
+          response_data: Json | null
+          service: string
+          success: boolean
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          mock?: boolean
+          request_data?: Json | null
+          response_data?: Json | null
+          service: string
+          success?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          mock?: boolean
+          request_data?: Json | null
+          response_data?: Json | null
+          service?: string
+          success?: boolean
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      saved_workflows: {
+        Row: {
+          created_at: string
+          edges: Json | null
+          id: string
+          name: string
+          nodes: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          edges?: Json | null
+          id?: string
+          name: string
+          nodes?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          edges?: Json | null
+          id?: string
+          name?: string
+          nodes?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
