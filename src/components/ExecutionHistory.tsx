@@ -51,15 +51,15 @@ export function ExecutionHistory() {
   };
 
   const handleSave = async (item: ApiRequest) => {
-    const { error } = await supabase.from('api_requests').insert({
+    const { error } = await supabase.from('api_requests').insert([{
       service: item.service,
       action: item.action,
-      request_data: item.request_data,
-      response_data: {},
+      request_data: item.request_data as any,
+      response_data: {} as any,
       success: false,
       mock: false,
       duration_ms: null,
-    });
+    }]);
     if (error) {
       toast({ title: 'Failed to save', description: error.message, variant: 'destructive' });
     } else {
