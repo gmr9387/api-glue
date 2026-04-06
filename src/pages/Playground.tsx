@@ -1,9 +1,11 @@
 import { RequestBuilder } from '@/components/RequestBuilder';
 import { ResponseViewer } from '@/components/ResponseViewer';
+import { ExecutionHistory } from '@/components/ExecutionHistory';
 import { useApiStore } from '@/store/useApiStore';
 import { Plug } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function Playground() {
   const connectedServices = useApiStore(s => s.connectedServices);
@@ -35,9 +37,22 @@ export default function Playground() {
         <p className="text-sm text-muted-foreground mt-1">Execute API calls with a unified interface.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <RequestBuilder />
-        <ResponseViewer />
+        <div className="lg:col-span-2">
+          <Tabs defaultValue="response" className="h-full">
+            <TabsList className="mb-3">
+              <TabsTrigger value="response" className="text-xs font-mono">Response</TabsTrigger>
+              <TabsTrigger value="history" className="text-xs font-mono">History</TabsTrigger>
+            </TabsList>
+            <TabsContent value="response" className="mt-0">
+              <ResponseViewer />
+            </TabsContent>
+            <TabsContent value="history" className="mt-0">
+              <ExecutionHistory />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
