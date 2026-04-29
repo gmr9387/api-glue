@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { service, action, data } = await req.json();
+    const { service, action, data, user_id } = await req.json();
 
     if (!service || !action) {
       return new Response(
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     const durationMs = Date.now() - start;
 
     // Log to database (fire-and-forget)
-    logExecution(service, action, data || {}, result, isMock, durationMs).catch((e) =>
+    logExecution(service, action, data || {}, result, isMock, durationMs, user_id ?? null).catch((e) =>
       console.error("[execute-api] Log failed:", e.message)
     );
 
@@ -81,7 +81,8 @@ async function logExecution(
   requestData: Record<string, unknown>,
   result: Record<string, unknown>,
   mock: boolean,
-  durationMs: number
+  durationMs: number,
+  userId: string | null
 ) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -96,6 +97,7 @@ async function logExecution(
     success: !!result.success,
     mock,
     duration_ms: durationMs,
+    user_id: userId,
   });
 }
 

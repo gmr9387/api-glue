@@ -111,8 +111,9 @@ export const useApiStore = create<ApiState>((set, get) => ({
     let result: any;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const { data: respData, error } = await supabase.functions.invoke('execute-api', {
-        body: { service, action, data },
+        body: { service, action, data, user_id: session?.user?.id ?? null },
       });
 
       if (error) {
