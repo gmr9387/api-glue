@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Plus, Play, Trash2, CheckCircle, XCircle, Clock, GitBranch, ArrowDown, ChevronDown, History } from 'lucide-react';
+import { Plus, Play, Trash2, CheckCircle, XCircle, Clock, GitBranch, ArrowDown, ChevronDown, History, Paperclip, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { toast as sonner } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -27,6 +28,8 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(JSON.stringify(step.data, null, 2));
   const [err, setErr] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputId = `file-${step.id}`;
 
   const handleBlur = () => {
     try {
@@ -36,6 +39,49 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
     } catch (e: any) {
       setErr(e.message);
     }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      sonner.error('File must be under 20MB');
+      return;
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) { sonner.error('Sign in required'); return; }
+
+    setUploading(true);
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${userId}/${Date.now()}-${safeName}`;
+    const { error: upErr } = await supabase.storage
+      .from('workflow-files')
+      .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+    if (upErr) {
+      sonner.error(upErr.message);
+      setUploading(false);
+      return;
+    }
+    const { data: { publicUrl } } = supabase.storage.from('workflow-files').getPublicUrl(path);
+
+    // Merge fileUrl into the step's JSON input
+    let current: Record<string, any> = {};
+    try { current = text.trim() ? JSON.parse(text) : {}; } catch { current = {}; }
+    const next = {
+      ...current,
+      fileUrl: publicUrl,
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+    };
+    const nextText = JSON.stringify(next, null, 2);
+    setText(nextText);
+    updateData(workflowId, step.id, next);
+    setErr(null);
+    setUploading(false);
+    sonner.success(`Uploaded — referenced as fileUrl in this step (downstream: {{${index - 1}.input.fileUrl}})`);
   };
 
   return (
@@ -48,6 +94,7 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
           {step.status === 'pending' && <Clock className="h-3.5 w-3.5 text-accent animate-spin shrink-0" />}
           {step.status === 'idle' && <div className="h-3.5 w-3.5 rounded-full border border-border shrink-0" />}
           <span className="font-mono text-xs text-foreground flex-1">{step.service}.{step.action}</span>
+          {step.data?.fileUrl && <Paperclip className="h-3 w-3 text-accent shrink-0" />}
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground">
               <ChevronDown className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -58,9 +105,22 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
           </Button>
         </div>
         <CollapsibleContent className="pt-2 px-2">
-          <p className="text-[10px] font-mono text-muted-foreground mb-1">
-            Input JSON — reference earlier steps with <code className="text-accent">{'{{0.data.id}}'}</code>
-          </p>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-mono text-muted-foreground">
+              Input JSON — reference earlier steps with <code className="text-accent">{'{{0.data.id}}'}</code>
+            </p>
+            <input id={fileInputId} type="file" className="hidden" onChange={handleFileUpload} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => document.getElementById(fileInputId)?.click()}
+              disabled={uploading}
+              className="h-6 px-2 text-[10px] font-mono"
+            >
+              {uploading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Paperclip className="h-3 w-3 mr-1" />}
+              {uploading ? 'Uploading…' : 'Upload file'}
+            </Button>
+          </div>
           <Textarea
             value={text}
             onChange={e => setText(e.target.value)}
@@ -70,6 +130,11 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
             placeholder='{ "amount": 1000, "currency": "usd" }'
           />
           {err && <p className="text-[10px] font-mono text-destructive mt-1">JSON error: {err}</p>}
+          {step.data?.fileUrl && (
+            <p className="text-[10px] font-mono text-muted-foreground mt-1 truncate">
+              📎 {step.data.fileName || 'file'} — downstream: <code className="text-accent">{`{{${index - 1}.input.fileUrl}}`}</code>
+            </p>
+          )}
           {step.result && (
             <details className="mt-2">
               <summary className="text-[10px] font-mono text-muted-foreground cursor-pointer">Last result</summary>
