@@ -61,8 +61,33 @@ interface ApiState {
   addWorkflow: (name: string) => string;
   addWorkflowStep: (workflowId: string, step: Omit<WorkflowStep, 'id' | 'status'>) => void;
   removeWorkflowStep: (workflowId: string, stepId: string) => void;
+  updateWorkflowStepData: (workflowId: string, stepId: string, data: Record<string, any>) => void;
   runWorkflow: (workflowId: string) => Promise<void>;
   deleteWorkflow: (workflowId: string) => void;
+}
+
+// Resolve placeholders like {{1.data.id}} or {{0.data.text}} from prior step results
+function interpolate(value: any, context: Record<string, any>): any {
+  if (typeof value === 'string') {
+    // If the entire string is a single placeholder, return the raw resolved value (preserves type)
+    const single = value.match(/^\{\{\s*([^}]+?)\s*\}\}$/);
+    if (single) return resolvePath(context, single[1]) ?? value;
+    return value.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, path) => {
+      const resolved = resolvePath(context, path);
+      return resolved === undefined || resolved === null ? '' : String(resolved);
+    });
+  }
+  if (Array.isArray(value)) return value.map(v => interpolate(v, context));
+  if (value && typeof value === 'object') {
+    const out: Record<string, any> = {};
+    for (const k of Object.keys(value)) out[k] = interpolate(value[k], context);
+    return out;
+  }
+  return value;
+}
+
+function resolvePath(obj: any, path: string): any {
+  return path.split('.').reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
 }
 
 export const useApiStore = create<ApiState>((set, get) => ({
@@ -169,10 +194,44 @@ export const useApiStore = create<ApiState>((set, get) => ({
     }));
   },
 
+  updateWorkflowStepData: (workflowId, stepId, data) => {
+    set(s => ({
+      workflows: s.workflows.map(w =>
+        w.id === workflowId
+          ? { ...w, steps: w.steps.map(st => (st.id === stepId ? { ...st, data } : st)) }
+          : w
+      ),
+    }));
+  },
+
   runWorkflow: async (workflowId) => {
     const { workflows } = get();
     const workflow = workflows.find(w => w.id === workflowId);
     if (!workflow || workflow.steps.length === 0) return;
+
+    const startedAt = new Date();
+    const runStart = performance.now();
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+
+    // Create run record
+    let runId: string | null = null;
+    if (userId) {
+      const { data: runRow } = await supabase
+        .from('workflow_runs')
+        .insert({
+          user_id: userId,
+          workflow_id: workflow.id,
+          workflow_name: workflow.name,
+          status: 'running',
+          steps: [],
+          context: {},
+          started_at: startedAt.toISOString(),
+        })
+        .select('id')
+        .single();
+      runId = runRow?.id ?? null;
+    }
 
     set(s => ({
       workflows: s.workflows.map(w =>
@@ -182,9 +241,28 @@ export const useApiStore = create<ApiState>((set, get) => ({
       ),
     }));
 
-    for (const step of workflow.steps) {
+    // context maps step index → step result (so users can reference {{0.data.id}} etc.)
+    const context: Record<string, any> = {};
+    const stepResults: any[] = [];
+    let finalStatus: 'completed' | 'failed' = 'completed';
+    let runError: string | null = null;
+
+    for (let i = 0; i < workflow.steps.length; i++) {
+      const step = workflow.steps[i];
+      const resolvedData = interpolate(step.data, context);
       const serviceAction = `${step.service}.${step.action}`;
-      const result = await get().execute(serviceAction, step.data);
+      const result = await get().execute(serviceAction, resolvedData);
+
+      context[i] = result;
+      stepResults.push({
+        index: i,
+        service: step.service,
+        action: step.action,
+        input: resolvedData,
+        result,
+        success: !!result.success,
+        duration_ms: result.duration,
+      });
 
       set(s => ({
         workflows: s.workflows.map(w =>
@@ -200,16 +278,30 @@ export const useApiStore = create<ApiState>((set, get) => ({
       }));
 
       if (!result.success) {
-        set(s => ({
-          workflows: s.workflows.map(w => (w.id === workflowId ? { ...w, status: 'failed' as const, lastRun: new Date() } : w)),
-        }));
-        return;
+        finalStatus = 'failed';
+        runError = result.error || 'Step failed';
+        break;
       }
     }
 
+    const duration = Math.round(performance.now() - runStart);
+
     set(s => ({
-      workflows: s.workflows.map(w => (w.id === workflowId ? { ...w, status: 'completed' as const, lastRun: new Date() } : w)),
+      workflows: s.workflows.map(w =>
+        w.id === workflowId ? { ...w, status: finalStatus, lastRun: new Date() } : w
+      ),
     }));
+
+    if (runId) {
+      await supabase.from('workflow_runs').update({
+        status: finalStatus,
+        steps: stepResults,
+        context,
+        duration_ms: duration,
+        error: runError,
+        finished_at: new Date().toISOString(),
+      }).eq('id', runId);
+    }
   },
 
   deleteWorkflow: (workflowId) => {

@@ -12,6 +12,7 @@ import Connectors from "./pages/Connectors";
 import Playground from "./pages/Playground";
 import Workflows from "./pages/Workflows";
 import AIBuilder from "./pages/AIBuilder";
+import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -38,6 +39,7 @@ function AppShell() {
               <Route path="/playground" element={<Playground />} />
               <Route path="/workflows" element={<Workflows />} />
               <Route path="/ai-builder" element={<AIBuilder />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
