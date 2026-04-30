@@ -241,7 +241,8 @@ export const useApiStore = create<ApiState>((set, get) => ({
       ),
     }));
 
-    // context maps step index → step result (so users can reference {{0.data.id}} etc.)
+    // context maps step index → { ...result, input } so users can reference
+    // {{0.data.id}} (result), {{0.input.fileUrl}} (resolved input), etc.
     const context: Record<string, any> = {};
     const stepResults: any[] = [];
     let finalStatus: 'completed' | 'failed' = 'completed';
@@ -253,7 +254,7 @@ export const useApiStore = create<ApiState>((set, get) => ({
       const serviceAction = `${step.service}.${step.action}`;
       const result = await get().execute(serviceAction, resolvedData);
 
-      context[i] = result;
+      context[i] = { ...result, input: resolvedData };
       stepResults.push({
         index: i,
         service: step.service,
