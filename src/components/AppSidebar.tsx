@@ -1,4 +1,4 @@
-import { LayoutDashboard, Plug, Play, GitBranch, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Plug, Play, GitBranch, Sparkles, User } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import {
@@ -22,6 +22,7 @@ const navItems = [
   { title: 'Playground', url: '/playground', icon: Play },
   { title: 'Workflows', url: '/workflows', icon: GitBranch },
   { title: 'AI Builder', url: '/ai-builder', icon: Sparkles },
+  { title: 'Profile', url: '/profile', icon: User },
 ];
 
 export function AppSidebar() {
