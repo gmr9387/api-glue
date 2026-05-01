@@ -64,14 +64,25 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
       setUploading(false);
       return;
     }
-    const { data: { publicUrl } } = supabase.storage.from('workflow-files').getPublicUrl(path);
+    // Generate a signed URL (7 days) so external APIs can fetch without the bucket being public
+    const { data: signed, error: signErr } = await supabase
+      .storage
+      .from('workflow-files')
+      .createSignedUrl(path, 60 * 60 * 24 * 7);
+    if (signErr || !signed?.signedUrl) {
+      sonner.error(signErr?.message || 'Could not sign file URL');
+      setUploading(false);
+      return;
+    }
 
-    // Merge fileUrl into the step's JSON input
+    // Merge fileUrl into the step's JSON input. The runner mirrors these fields
+    // onto context[i].output so downstream steps can use {{N.output.fileUrl}}.
     let current: Record<string, any> = {};
     try { current = text.trim() ? JSON.parse(text) : {}; } catch { current = {}; }
     const next = {
       ...current,
-      fileUrl: publicUrl,
+      fileUrl: signed.signedUrl,
+      filePath: path,
       fileName: file.name,
       fileType: file.type,
       fileSize: file.size,
@@ -81,7 +92,7 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
     updateData(workflowId, step.id, next);
     setErr(null);
     setUploading(false);
-    sonner.success(`Uploaded — referenced as fileUrl in this step (downstream: {{${index - 1}.input.fileUrl}})`);
+    sonner.success(`Uploaded — downstream: {{${index - 1}.output.fileUrl}}`);
   };
 
   return (
