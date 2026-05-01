@@ -241,8 +241,10 @@ export const useApiStore = create<ApiState>((set, get) => ({
       ),
     }));
 
-    // context maps step index → { ...result, input } so users can reference
-    // {{0.data.id}} (result), {{0.input.fileUrl}} (resolved input), etc.
+    // context maps step index → { ...result, input, output } so users can reference
+    //   {{0.data.id}}        → raw service response data
+    //   {{0.input.fileUrl}}  → the resolved input that was sent
+    //   {{0.output.fileUrl}} → first-class outputs (file metadata + action data merged)
     const context: Record<string, any> = {};
     const stepResults: any[] = [];
     let finalStatus: 'completed' | 'failed' = 'completed';
@@ -254,12 +256,23 @@ export const useApiStore = create<ApiState>((set, get) => ({
       const serviceAction = `${step.service}.${step.action}`;
       const result = await get().execute(serviceAction, resolvedData);
 
-      context[i] = { ...result, input: resolvedData };
+      // Build first-class `output`: any uploaded-file metadata from the input is
+      // promoted as a step output, merged with whatever the action returned.
+      const fileFields: Record<string, any> = {};
+      if (resolvedData && typeof resolvedData === 'object') {
+        for (const k of ['fileUrl', 'filePath', 'fileName', 'fileType', 'fileSize']) {
+          if ((resolvedData as any)[k] !== undefined) fileFields[k] = (resolvedData as any)[k];
+        }
+      }
+      const output = { ...fileFields, ...(result?.data && typeof result.data === 'object' ? result.data : {}) };
+
+      context[i] = { ...result, input: resolvedData, output };
       stepResults.push({
         index: i,
         service: step.service,
         action: step.action,
         input: resolvedData,
+        output,
         result,
         success: !!result.success,
         duration_ms: result.duration,
