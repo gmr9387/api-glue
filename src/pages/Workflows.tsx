@@ -143,7 +143,7 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
           {err && <p className="text-[10px] font-mono text-destructive mt-1">JSON error: {err}</p>}
           {step.data?.fileUrl && (
             <p className="text-[10px] font-mono text-muted-foreground mt-1 truncate">
-              📎 {step.data.fileName || 'file'} — downstream: <code className="text-accent">{`{{${index - 1}.input.fileUrl}}`}</code>
+              📎 {step.data.fileName || 'file'} — downstream: <code className="text-accent">{`{{${index - 1}.output.fileUrl}}`}</code>
             </p>
           )}
           {step.result && (
