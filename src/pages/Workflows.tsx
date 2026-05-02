@@ -205,8 +205,10 @@ function WorkflowCard({ workflow }: { workflow: Workflow }) {
   const connectedServices = useApiStore(s => s.connectedServices);
   const addWorkflowStep = useApiStore(s => s.addWorkflowStep);
   const runWorkflow = useApiStore(s => s.runWorkflow);
+  const retryFromFailed = useApiStore(s => s.retryWorkflowFromFailed);
   const deleteWorkflow = useApiStore(s => s.deleteWorkflow);
   const loading = useApiStore(s => s.loading);
+  const hasFailedStep = workflow.steps.some(s => s.status === 'error');
 
   const [stepService, setStepService] = useState('');
   const [stepAction, setStepAction] = useState('');
