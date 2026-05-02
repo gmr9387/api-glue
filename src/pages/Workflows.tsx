@@ -11,17 +11,6 @@ import { toast as sonner } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-interface WorkflowRun {
-  id: string;
-  workflow_name: string;
-  status: string;
-  duration_ms: number | null;
-  error: string | null;
-  steps: any;
-  started_at: string;
-  finished_at: string | null;
-}
-
 function StepEditor({ workflowId, step, index }: { workflowId: string; step: WorkflowStep; index: number }) {
   const updateData = useApiStore(s => s.updateWorkflowStepData);
   const updateRetry = useApiStore(s => s.updateWorkflowStepRetry);
