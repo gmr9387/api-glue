@@ -24,6 +24,7 @@ interface WorkflowRun {
 
 function StepEditor({ workflowId, step, index }: { workflowId: string; step: WorkflowStep; index: number }) {
   const updateData = useApiStore(s => s.updateWorkflowStepData);
+  const updateRetry = useApiStore(s => s.updateWorkflowStepRetry);
   const removeStep = useApiStore(s => s.removeWorkflowStep);
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(JSON.stringify(step.data, null, 2));
