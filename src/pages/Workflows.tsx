@@ -5,25 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Plus, Play, Trash2, CheckCircle, XCircle, Clock, GitBranch, ArrowDown, ChevronDown, History, Paperclip, Loader2 } from 'lucide-react';
+import { Plus, Play, Trash2, CheckCircle, XCircle, Clock, GitBranch, ArrowDown, ChevronDown, History, Paperclip, Loader2, RotateCw, SkipForward } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { toast as sonner } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-interface WorkflowRun {
-  id: string;
-  workflow_name: string;
-  status: string;
-  duration_ms: number | null;
-  error: string | null;
-  steps: any;
-  started_at: string;
-  finished_at: string | null;
-}
-
 function StepEditor({ workflowId, step, index }: { workflowId: string; step: WorkflowStep; index: number }) {
   const updateData = useApiStore(s => s.updateWorkflowStepData);
+  const updateRetry = useApiStore(s => s.updateWorkflowStepRetry);
   const removeStep = useApiStore(s => s.removeWorkflowStep);
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(JSON.stringify(step.data, null, 2));
@@ -102,6 +92,7 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
           <span className="text-[10px] font-mono text-muted-foreground w-5 shrink-0">#{index}</span>
           {step.status === 'success' && <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />}
           {step.status === 'error' && <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+          {step.status === 'skipped' && <SkipForward className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
           {step.status === 'pending' && <Clock className="h-3.5 w-3.5 text-accent animate-spin shrink-0" />}
           {step.status === 'idle' && <div className="h-3.5 w-3.5 rounded-full border border-border shrink-0" />}
           <span className="font-mono text-xs text-foreground flex-1">{step.service}.{step.action}</span>
@@ -154,6 +145,45 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
               </pre>
             </details>
           )}
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <div>
+              <label className="text-[10px] font-mono text-muted-foreground block mb-0.5">Max retries</label>
+              <Input
+                type="number" min={0} max={10}
+                value={step.maxRetries ?? 0}
+                onChange={e => updateRetry(workflowId, step.id, { maxRetries: Math.max(0, Number(e.target.value) || 0) })}
+                className="h-7 font-mono text-[11px] bg-muted/50 border-border/50"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-mono text-muted-foreground block mb-0.5">Delay (ms)</label>
+              <Input
+                type="number" min={0} step={100}
+                value={step.retryDelayMs ?? 500}
+                onChange={e => updateRetry(workflowId, step.id, { retryDelayMs: Math.max(0, Number(e.target.value) || 0) })}
+                className="h-7 font-mono text-[11px] bg-muted/50 border-border/50"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-mono text-muted-foreground block mb-0.5">On failure</label>
+              <Select
+                value={step.onError ?? 'stop'}
+                onValueChange={(v: 'stop' | 'continue' | 'skip') => updateRetry(workflowId, step.id, { onError: v })}
+              >
+                <SelectTrigger className="h-7 font-mono text-[11px] bg-muted/50 border-border/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="stop" className="font-mono text-xs">Stop run</SelectItem>
+                  <SelectItem value="continue" className="font-mono text-xs">Continue</SelectItem>
+                  <SelectItem value="skip" className="font-mono text-xs">Skip & continue</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-[10px] font-mono text-muted-foreground mt-1">
+            Retries use exponential backoff. <span className="text-accent">Continue</span> marks run failed but proceeds; <span className="text-accent">Skip</span> ignores the error.
+          </p>
         </CollapsibleContent>
       </Collapsible>
     </div>
@@ -164,8 +194,10 @@ function WorkflowCard({ workflow }: { workflow: Workflow }) {
   const connectedServices = useApiStore(s => s.connectedServices);
   const addWorkflowStep = useApiStore(s => s.addWorkflowStep);
   const runWorkflow = useApiStore(s => s.runWorkflow);
+  const retryFromFailed = useApiStore(s => s.retryWorkflowFromFailed);
   const deleteWorkflow = useApiStore(s => s.deleteWorkflow);
   const loading = useApiStore(s => s.loading);
+  const hasFailedStep = workflow.steps.some(s => s.status === 'error');
 
   const [stepService, setStepService] = useState('');
   const [stepAction, setStepAction] = useState('');
@@ -202,6 +234,16 @@ function WorkflowCard({ workflow }: { workflow: Workflow }) {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {hasFailedStep && (
+            <Button
+              variant="outline" size="sm"
+              onClick={async () => { toast({ title: `Resuming "${workflow.name}" from failed step…` }); await retryFromFailed(workflow.id); }}
+              disabled={loading}
+              className="text-xs font-mono"
+            >
+              <RotateCw className="h-3 w-3 mr-1" /> Resume
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={handleRun} disabled={workflow.steps.length === 0 || loading} className="text-xs font-mono">
             <Play className="h-3 w-3 mr-1" /> Run
           </Button>
@@ -255,83 +297,190 @@ function WorkflowCard({ workflow }: { workflow: Workflow }) {
   );
 }
 
+const PAGE_SIZE = 20;
+
+// Lightweight row used in the list — heavy `steps` JSON is fetched lazily on expand
+interface RunRow {
+  id: string;
+  workflow_name: string;
+  status: string;
+  duration_ms: number | null;
+  error: string | null;
+  step_count: number | null;
+  started_at: string;
+  finished_at: string | null;
+}
+
 function RunHistory() {
   const { user } = useAuth();
-  const [runs, setRuns] = useState<WorkflowRun[]>([]);
+  const [runs, setRuns] = useState<RunRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'failed' | 'running'>('all');
+  const [expandedSteps, setExpandedSteps] = useState<Record<string, any[]>>({});
+
+  // Build a base query with the active filter — selects only list-grade columns.
+  // step_count uses jsonb_array_length so we don't pull the whole steps blob.
+  const buildQuery = () => {
+    let q = supabase
+      .from('workflow_runs')
+      .select('id, workflow_name, status, duration_ms, error, started_at, finished_at, step_count:steps')
+      .order('started_at', { ascending: false })
+      .limit(PAGE_SIZE);
+    if (statusFilter !== 'all') q = q.eq('status', statusFilter);
+    return q;
+  };
+
+  // Map raw rows: replace the steps payload with its length so the list stays light.
+  const mapRows = (rows: any[]): RunRow[] =>
+    rows.map(r => ({
+      ...r,
+      step_count: Array.isArray(r.step_count) ? r.step_count.length : null,
+    }));
 
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('workflow_runs')
-      .select('id, workflow_name, status, duration_ms, error, steps, started_at, finished_at')
-      .order('started_at', { ascending: false })
-      .limit(20);
-    setRuns((data ?? []) as WorkflowRun[]);
+    setExpandedSteps({});
+    const { data } = await buildQuery();
+    const mapped = mapRows(data ?? []);
+    setRuns(mapped);
+    setHasMore(mapped.length === PAGE_SIZE);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [user]);
+  // Keyset pagination using started_at as the cursor — fast even with many rows
+  // thanks to the (user_id, started_at DESC) index.
+  const loadMore = async () => {
+    if (!user || runs.length === 0) return;
+    setLoadingMore(true);
+    const cursor = runs[runs.length - 1].started_at;
+    let q = supabase
+      .from('workflow_runs')
+      .select('id, workflow_name, status, duration_ms, error, started_at, finished_at, step_count:steps')
+      .order('started_at', { ascending: false })
+      .lt('started_at', cursor)
+      .limit(PAGE_SIZE);
+    if (statusFilter !== 'all') q = q.eq('status', statusFilter);
+    const { data } = await q;
+    const mapped = mapRows(data ?? []);
+    setRuns(prev => [...prev, ...mapped]);
+    setHasMore(mapped.length === PAGE_SIZE);
+    setLoadingMore(false);
+  };
 
-  // Refresh every few seconds while a workflow is running
+  // Lazy-fetch the heavy steps payload when a row is expanded
+  const fetchSteps = async (runId: string) => {
+    if (expandedSteps[runId]) return;
+    const { data } = await supabase
+      .from('workflow_runs')
+      .select('steps')
+      .eq('id', runId)
+      .single();
+    setExpandedSteps(prev => ({ ...prev, [runId]: Array.isArray(data?.steps) ? (data!.steps as any[]) : [] }));
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user, statusFilter]);
+
   const workflowsRunning = useApiStore(s => s.workflows.some(w => w.status === 'running'));
   useEffect(() => {
-    if (!workflowsRunning) { load(); return; }
+    if (!workflowsRunning) return;
     const interval = setInterval(load, 2000);
     return () => clearInterval(interval);
-  }, [workflowsRunning]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflowsRunning, statusFilter]);
 
   return (
     <div className="glass-panel p-5">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <History className="h-4 w-4 text-muted-foreground" />
           <h3 className="font-display font-semibold text-foreground">Run History</h3>
         </div>
-        <Button variant="ghost" size="sm" onClick={load} className="text-xs font-mono h-7">Refresh</Button>
+        <div className="flex items-center gap-2">
+          <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+            <SelectTrigger className="h-7 w-[120px] font-mono text-[11px] bg-muted border-border/50">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="font-mono text-xs">All</SelectItem>
+              <SelectItem value="completed" className="font-mono text-xs">Completed</SelectItem>
+              <SelectItem value="failed" className="font-mono text-xs">Failed</SelectItem>
+              <SelectItem value="running" className="font-mono text-xs">Running</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="ghost" size="sm" onClick={load} className="text-xs font-mono h-7">Refresh</Button>
+        </div>
       </div>
       {loading ? (
         <p className="text-xs font-mono text-muted-foreground">Loading…</p>
       ) : runs.length === 0 ? (
         <p className="text-xs font-mono text-muted-foreground">No runs yet.</p>
       ) : (
-        <div className="space-y-2">
-          {runs.map(run => {
-            const steps = Array.isArray(run.steps) ? run.steps : [];
-            return (
-              <details key={run.id} className="rounded-md bg-muted/20 border border-border/30">
-                <summary className="flex items-center gap-3 p-2.5 cursor-pointer">
-                  {run.status === 'completed' && <CheckCircle className="h-3.5 w-3.5 text-primary" />}
-                  {run.status === 'failed' && <XCircle className="h-3.5 w-3.5 text-destructive" />}
-                  {run.status === 'running' && <Clock className="h-3.5 w-3.5 text-accent animate-spin" />}
-                  <span className="font-mono text-xs flex-1 truncate">{run.workflow_name}</span>
-                  <span className="text-[10px] font-mono text-muted-foreground">{steps.length} steps</span>
-                  {run.duration_ms != null && (
-                    <span className="text-[10px] font-mono text-muted-foreground">{run.duration_ms}ms</span>
-                  )}
-                  <span className="text-[10px] font-mono text-muted-foreground">
-                    {new Date(run.started_at).toLocaleTimeString()}
-                  </span>
-                </summary>
-                <div className="px-3 pb-3 space-y-1.5">
-                  {run.error && (
-                    <p className="text-[10px] font-mono text-destructive">Error: {run.error}</p>
-                  )}
-                  {steps.map((s: any, i: number) => (
-                    <div key={i} className="text-[10px] font-mono">
-                      <div className="flex items-center gap-2">
-                        {s.success ? <CheckCircle className="h-2.5 w-2.5 text-primary" /> : <XCircle className="h-2.5 w-2.5 text-destructive" />}
-                        <span>#{i + 1} {s.service}.{s.action}</span>
-                        {s.duration_ms != null && <span className="text-muted-foreground">({s.duration_ms}ms)</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </details>
-            );
-          })}
-        </div>
+        <>
+          <div className="space-y-2">
+            {runs.map(run => {
+              const steps = expandedSteps[run.id];
+              return (
+                <details
+                  key={run.id}
+                  className="rounded-md bg-muted/20 border border-border/30"
+                  onToggle={(e) => { if ((e.target as HTMLDetailsElement).open) fetchSteps(run.id); }}
+                >
+                  <summary className="flex items-center gap-3 p-2.5 cursor-pointer">
+                    {run.status === 'completed' && <CheckCircle className="h-3.5 w-3.5 text-primary" />}
+                    {run.status === 'failed' && <XCircle className="h-3.5 w-3.5 text-destructive" />}
+                    {run.status === 'running' && <Clock className="h-3.5 w-3.5 text-accent animate-spin" />}
+                    <span className="font-mono text-xs flex-1 truncate">{run.workflow_name}</span>
+                    {run.step_count != null && (
+                      <span className="text-[10px] font-mono text-muted-foreground">{run.step_count} steps</span>
+                    )}
+                    {run.duration_ms != null && (
+                      <span className="text-[10px] font-mono text-muted-foreground">{run.duration_ms}ms</span>
+                    )}
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      {new Date(run.started_at).toLocaleTimeString()}
+                    </span>
+                  </summary>
+                  <div className="px-3 pb-3 space-y-1.5">
+                    {run.error && (
+                      <p className="text-[10px] font-mono text-destructive">Error: {run.error}</p>
+                    )}
+                    {steps === undefined ? (
+                      <p className="text-[10px] font-mono text-muted-foreground">Loading steps…</p>
+                    ) : steps.length === 0 ? (
+                      <p className="text-[10px] font-mono text-muted-foreground">No step details.</p>
+                    ) : (
+                      steps.map((s: any, i: number) => (
+                        <div key={i} className="text-[10px] font-mono">
+                          <div className="flex items-center gap-2">
+                            {s.status === 'skipped'
+                              ? <SkipForward className="h-2.5 w-2.5 text-muted-foreground" />
+                              : s.success
+                                ? <CheckCircle className="h-2.5 w-2.5 text-primary" />
+                                : <XCircle className="h-2.5 w-2.5 text-destructive" />}
+                            <span>#{i + 1} {s.service}.{s.action}</span>
+                            {s.attempts > 1 && <span className="text-accent">×{s.attempts}</span>}
+                            {s.duration_ms != null && <span className="text-muted-foreground">({s.duration_ms}ms)</span>}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+          {hasMore && (
+            <div className="mt-3 flex justify-center">
+              <Button variant="ghost" size="sm" onClick={loadMore} disabled={loadingMore} className="text-xs font-mono h-7">
+                {loadingMore ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                Load more
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

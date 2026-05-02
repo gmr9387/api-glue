@@ -38,8 +38,12 @@ export interface WorkflowStep {
   service: string;
   action: string;
   data: Record<string, any>;
-  status: 'pending' | 'success' | 'error' | 'idle';
+  status: 'pending' | 'success' | 'error' | 'skipped' | 'idle';
   result?: any;
+  // Per-step retry/recovery configuration
+  maxRetries?: number;        // total attempts beyond the first try; default 0
+  retryDelayMs?: number;      // base delay; doubles each retry; default 500
+  onError?: 'stop' | 'continue' | 'skip'; // what to do if step ultimately fails; default 'stop'
 }
 
 interface ApiState {
@@ -62,7 +66,9 @@ interface ApiState {
   addWorkflowStep: (workflowId: string, step: Omit<WorkflowStep, 'id' | 'status'>) => void;
   removeWorkflowStep: (workflowId: string, stepId: string) => void;
   updateWorkflowStepData: (workflowId: string, stepId: string, data: Record<string, any>) => void;
-  runWorkflow: (workflowId: string) => Promise<void>;
+  updateWorkflowStepRetry: (workflowId: string, stepId: string, cfg: { maxRetries?: number; retryDelayMs?: number; onError?: 'stop' | 'continue' | 'skip' }) => void;
+  runWorkflow: (workflowId: string, opts?: { resumeFromIndex?: number; previousContext?: Record<string, any> }) => Promise<void>;
+  retryWorkflowFromFailed: (workflowId: string) => Promise<void>;
   deleteWorkflow: (workflowId: string) => void;
 }
 
@@ -204,17 +210,27 @@ export const useApiStore = create<ApiState>((set, get) => ({
     }));
   },
 
-  runWorkflow: async (workflowId) => {
+  updateWorkflowStepRetry: (workflowId, stepId, cfg) => {
+    set(s => ({
+      workflows: s.workflows.map(w =>
+        w.id === workflowId
+          ? { ...w, steps: w.steps.map(st => (st.id === stepId ? { ...st, ...cfg } : st)) }
+          : w
+      ),
+    }));
+  },
+
+  runWorkflow: async (workflowId, opts) => {
     const { workflows } = get();
     const workflow = workflows.find(w => w.id === workflowId);
     if (!workflow || workflow.steps.length === 0) return;
 
+    const resumeFromIndex = opts?.resumeFromIndex ?? 0;
     const startedAt = new Date();
     const runStart = performance.now();
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
 
-    // Create run record
     let runId: string | null = null;
     if (userId) {
       const { data: runRow } = await supabase
@@ -222,10 +238,10 @@ export const useApiStore = create<ApiState>((set, get) => ({
         .insert({
           user_id: userId,
           workflow_id: workflow.id,
-          workflow_name: workflow.name,
+          workflow_name: resumeFromIndex > 0 ? `${workflow.name} (resume @${resumeFromIndex + 1})` : workflow.name,
           status: 'running',
           steps: [],
-          context: {},
+          context: opts?.previousContext ?? {},
           started_at: startedAt.toISOString(),
         })
         .select('id')
@@ -236,28 +252,41 @@ export const useApiStore = create<ApiState>((set, get) => ({
     set(s => ({
       workflows: s.workflows.map(w =>
         w.id === workflowId
-          ? { ...w, status: 'running' as const, steps: w.steps.map(st => ({ ...st, status: 'pending' as const, result: undefined })) }
+          ? {
+              ...w,
+              status: 'running' as const,
+              steps: w.steps.map((st, i) =>
+                i >= resumeFromIndex ? { ...st, status: 'pending' as const, result: undefined } : st
+              ),
+            }
           : w
       ),
     }));
 
-    // context maps step index → { ...result, input, output } so users can reference
-    //   {{0.data.id}}        → raw service response data
-    //   {{0.input.fileUrl}}  → the resolved input that was sent
-    //   {{0.output.fileUrl}} → first-class outputs (file metadata + action data merged)
-    const context: Record<string, any> = {};
+    const context: Record<string, any> = { ...(opts?.previousContext ?? {}) };
     const stepResults: any[] = [];
     let finalStatus: 'completed' | 'failed' = 'completed';
     let runError: string | null = null;
 
-    for (let i = 0; i < workflow.steps.length; i++) {
+    for (let i = resumeFromIndex; i < workflow.steps.length; i++) {
       const step = workflow.steps[i];
-      const resolvedData = interpolate(step.data, context);
-      const serviceAction = `${step.service}.${step.action}`;
-      const result = await get().execute(serviceAction, resolvedData);
+      const maxRetries = step.maxRetries ?? 0;
+      const baseDelay = step.retryDelayMs ?? 500;
+      const onError = step.onError ?? 'stop';
 
-      // Build first-class `output`: any uploaded-file metadata from the input is
-      // promoted as a step output, merged with whatever the action returned.
+      let attempt = 0;
+      let result: any;
+      let resolvedData: any;
+      while (true) {
+        resolvedData = interpolate(step.data, context);
+        const serviceAction = `${step.service}.${step.action}`;
+        result = await get().execute(serviceAction, resolvedData);
+        if (result.success || attempt >= maxRetries) break;
+        attempt++;
+        // Exponential backoff
+        await new Promise(r => setTimeout(r, baseDelay * Math.pow(2, attempt - 1)));
+      }
+
       const fileFields: Record<string, any> = {};
       if (resolvedData && typeof resolvedData === 'object') {
         for (const k of ['fileUrl', 'filePath', 'fileName', 'fileType', 'fileSize']) {
@@ -267,6 +296,11 @@ export const useApiStore = create<ApiState>((set, get) => ({
       const output = { ...fileFields, ...(result?.data && typeof result.data === 'object' ? result.data : {}) };
 
       context[i] = { ...result, input: resolvedData, output };
+
+      const failed = !result.success;
+      const skipped = failed && onError === 'skip';
+      const stepStatus: 'success' | 'error' | 'skipped' = result.success ? 'success' : (skipped ? 'skipped' : 'error');
+
       stepResults.push({
         index: i,
         service: step.service,
@@ -275,6 +309,8 @@ export const useApiStore = create<ApiState>((set, get) => ({
         output,
         result,
         success: !!result.success,
+        attempts: attempt + 1,
+        status: stepStatus,
         duration_ms: result.duration,
       });
 
@@ -284,18 +320,24 @@ export const useApiStore = create<ApiState>((set, get) => ({
             ? {
                 ...w,
                 steps: w.steps.map(st =>
-                  st.id === step.id ? { ...st, status: (result.success ? 'success' : 'error') as 'success' | 'error', result } : st
+                  st.id === step.id ? { ...st, status: stepStatus, result } : st
                 ),
               }
             : w
         ),
       }));
 
-      if (!result.success) {
+      if (failed && onError === 'stop') {
         finalStatus = 'failed';
         runError = result.error || 'Step failed';
         break;
       }
+      if (failed && onError === 'continue') {
+        // Mark the run as failed overall but keep going
+        finalStatus = 'failed';
+        runError = runError ?? (result.error || 'Step failed');
+      }
+      // 'skip' → run continues, status stays 'completed' unless something else fails
     }
 
     const duration = Math.round(performance.now() - runStart);
@@ -316,6 +358,21 @@ export const useApiStore = create<ApiState>((set, get) => ({
         finished_at: new Date().toISOString(),
       }).eq('id', runId);
     }
+  },
+
+  retryWorkflowFromFailed: async (workflowId) => {
+    const { workflows } = get();
+    const workflow = workflows.find(w => w.id === workflowId);
+    if (!workflow) return;
+    const failedIndex = workflow.steps.findIndex(s => s.status === 'error');
+    const startIndex = failedIndex === -1 ? 0 : failedIndex;
+    // Rebuild a context from prior successful steps' results
+    const previousContext: Record<string, any> = {};
+    for (let i = 0; i < startIndex; i++) {
+      const r = workflow.steps[i].result;
+      if (r) previousContext[i] = r;
+    }
+    await get().runWorkflow(workflowId, { resumeFromIndex: startIndex, previousContext });
   },
 
   deleteWorkflow: (workflowId) => {
