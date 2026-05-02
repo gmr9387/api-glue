@@ -38,8 +38,12 @@ export interface WorkflowStep {
   service: string;
   action: string;
   data: Record<string, any>;
-  status: 'pending' | 'success' | 'error' | 'idle';
+  status: 'pending' | 'success' | 'error' | 'skipped' | 'idle';
   result?: any;
+  // Per-step retry/recovery configuration
+  maxRetries?: number;        // total attempts beyond the first try; default 0
+  retryDelayMs?: number;      // base delay; doubles each retry; default 500
+  onError?: 'stop' | 'continue' | 'skip'; // what to do if step ultimately fails; default 'stop'
 }
 
 interface ApiState {
