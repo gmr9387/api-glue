@@ -245,6 +245,16 @@ function WorkflowCard({ workflow }: { workflow: Workflow }) {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {hasFailedStep && (
+            <Button
+              variant="outline" size="sm"
+              onClick={async () => { toast({ title: `Resuming "${workflow.name}" from failed step…` }); await retryFromFailed(workflow.id); }}
+              disabled={loading}
+              className="text-xs font-mono"
+            >
+              <RotateCw className="h-3 w-3 mr-1" /> Resume
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={handleRun} disabled={workflow.steps.length === 0 || loading} className="text-xs font-mono">
             <Play className="h-3 w-3 mr-1" /> Run
           </Button>
