@@ -103,6 +103,7 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
           <span className="text-[10px] font-mono text-muted-foreground w-5 shrink-0">#{index}</span>
           {step.status === 'success' && <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />}
           {step.status === 'error' && <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+          {step.status === 'skipped' && <SkipForward className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
           {step.status === 'pending' && <Clock className="h-3.5 w-3.5 text-accent animate-spin shrink-0" />}
           {step.status === 'idle' && <div className="h-3.5 w-3.5 rounded-full border border-border shrink-0" />}
           <span className="font-mono text-xs text-foreground flex-1">{step.service}.{step.action}</span>
