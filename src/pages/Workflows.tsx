@@ -156,6 +156,45 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
               </pre>
             </details>
           )}
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <div>
+              <label className="text-[10px] font-mono text-muted-foreground block mb-0.5">Max retries</label>
+              <Input
+                type="number" min={0} max={10}
+                value={step.maxRetries ?? 0}
+                onChange={e => updateRetry(workflowId, step.id, { maxRetries: Math.max(0, Number(e.target.value) || 0) })}
+                className="h-7 font-mono text-[11px] bg-muted/50 border-border/50"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-mono text-muted-foreground block mb-0.5">Delay (ms)</label>
+              <Input
+                type="number" min={0} step={100}
+                value={step.retryDelayMs ?? 500}
+                onChange={e => updateRetry(workflowId, step.id, { retryDelayMs: Math.max(0, Number(e.target.value) || 0) })}
+                className="h-7 font-mono text-[11px] bg-muted/50 border-border/50"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-mono text-muted-foreground block mb-0.5">On failure</label>
+              <Select
+                value={step.onError ?? 'stop'}
+                onValueChange={(v: 'stop' | 'continue' | 'skip') => updateRetry(workflowId, step.id, { onError: v })}
+              >
+                <SelectTrigger className="h-7 font-mono text-[11px] bg-muted/50 border-border/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="stop" className="font-mono text-xs">Stop run</SelectItem>
+                  <SelectItem value="continue" className="font-mono text-xs">Continue</SelectItem>
+                  <SelectItem value="skip" className="font-mono text-xs">Skip & continue</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-[10px] font-mono text-muted-foreground mt-1">
+            Retries use exponential backoff. <span className="text-accent">Continue</span> marks run failed but proceeds; <span className="text-accent">Skip</span> ignores the error.
+          </p>
         </CollapsibleContent>
       </Collapsible>
     </div>
