@@ -66,7 +66,9 @@ interface ApiState {
   addWorkflowStep: (workflowId: string, step: Omit<WorkflowStep, 'id' | 'status'>) => void;
   removeWorkflowStep: (workflowId: string, stepId: string) => void;
   updateWorkflowStepData: (workflowId: string, stepId: string, data: Record<string, any>) => void;
-  runWorkflow: (workflowId: string) => Promise<void>;
+  updateWorkflowStepRetry: (workflowId: string, stepId: string, cfg: { maxRetries?: number; retryDelayMs?: number; onError?: 'stop' | 'continue' | 'skip' }) => void;
+  runWorkflow: (workflowId: string, opts?: { resumeFromIndex?: number; previousContext?: Record<string, any> }) => Promise<void>;
+  retryWorkflowFromFailed: (workflowId: string) => Promise<void>;
   deleteWorkflow: (workflowId: string) => void;
 }
 
