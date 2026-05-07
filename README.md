@@ -6,6 +6,12 @@
 
 ---
 
+## Authorship
+
+API Unity OS is a solo-developer project. Every architectural decision, data model, workflow primitive, and product call in this repo is mine. AI tooling was used as an accelerator during implementation — scaffolding, boilerplate, and pair-programming on specific files — but the system, its scope, and its direction are not generated output. This is my brainchild; the AI was a faster keyboard, not the architect.
+
+---
+
 ## The Problem
 
 Wiring up Stripe, OpenAI, SendGrid, and Twilio in the same app means four different auth schemes, four different error shapes, four different retry stories — and credentials sprinkled across the frontend if you're not careful. Chaining them into a "charge → email receipt → log result" flow usually means writing one-off orchestration code that nobody wants to maintain.
@@ -48,7 +54,7 @@ API Unity OS exposes a single call shape — `api.execute("service.action", data
        │                                       │ writes
        ▼                                       ▼
 ┌──────────────────────────────────────────────────────────┐
-│  Lovable Cloud (Supabase)                                │
+│  Supabase (managed)                                │
 │  • api_requests / saved_workflows / workflow_runs        │
 │  • profiles / user_roles                                 │
 │  • Storage: avatars, workflow-files (private + signed)   │
@@ -56,7 +62,7 @@ API Unity OS exposes a single call shape — `api.execute("service.action", data
 └──────────────────────────────────────────────────────────┘
 ```
 
-A second edge function, `generate-workflow`, calls the Lovable AI Gateway to turn prompts into workflow JSON.
+A second edge function, `generate-workflow`, calls the a managed AI gateway to turn prompts into workflow JSON.
 
 **Decisions worth understanding:**
 
@@ -78,9 +84,9 @@ A second edge function, `generate-workflow`, calls the Lovable AI Gateway to tur
 | **Styling**  | Tailwind CSS + shadcn/ui        | Semantic HSL tokens via CSS variables                                      |
 | **State**    | Zustand + TanStack React Query  | Zustand for UI/runtime state, React Query for server cache                 |
 | **Backend**  | Supabase Edge Functions (Deno)  | `execute-api` and `generate-workflow`                                      |
-| **Database** | Postgres (Lovable Cloud)        | RLS on every user-owned table                                              |
+| **Database** | Postgres (Supabase)        | RLS on every user-owned table                                              |
 | **Auth**     | Supabase Auth (email + Google)  | JWT with auto-refresh                                                      |
-| **AI**       | Lovable AI Gateway              | Used by `generate-workflow`; no API key handling required                  |
+| **AI**       | Managed AI gateway              | Used by `generate-workflow`; no API key handling required                  |
 | **Testing**  | Vitest                          | Unit tests only — no e2e suite in this repo                                |
 
 ---
@@ -103,21 +109,21 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:5173`. The project is wired to a hosted Lovable Cloud backend out of the box; no local Supabase setup is required. Without provider secrets configured on the backend, the executor returns mock data so the UI is fully usable for demos.
+Open `http://localhost:5173`. The project is wired to a hosted Supabase backend out of the box; no local Supabase setup is required. Without provider secrets configured on the backend, the executor returns mock data so the UI is fully usable for demos.
 
 ---
 
 ## Configuration
 
-Frontend env vars (auto-managed by Lovable Cloud, in `.env`):
+Frontend env vars (auto-managed by Supabase, in `.env`):
 
 | Variable                        | Purpose                          |
 | ------------------------------- | -------------------------------- |
-| `VITE_SUPABASE_URL`             | Lovable Cloud project URL        |
+| `VITE_SUPABASE_URL`             | Supabase project URL        |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Public anon key (safe in client) |
 | `VITE_SUPABASE_PROJECT_ID`      | Project identifier               |
 
-Backend secrets (set in Lovable Cloud, **never** in client code). Any secret left unset triggers mock mode for that connector:
+Backend secrets (set in Supabase, **never** in client code). Any secret left unset triggers mock mode for that connector:
 
 | Secret               | Enables                  |
 | -------------------- | ------------------------ |
