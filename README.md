@@ -6,6 +6,12 @@
 
 ---
 
+## Authorship
+
+API Unity OS is a solo-developer project. Every architectural decision, data model, workflow primitive, and product call in this repo is mine. AI tooling was used as an accelerator during implementation — scaffolding, boilerplate, and pair-programming on specific files — but the system, its scope, and its direction are not generated output. This is my brainchild; the AI was a faster keyboard, not the architect.
+
+---
+
 ## The Problem
 
 Wiring up Stripe, OpenAI, SendGrid, and Twilio in the same app means four different auth schemes, four different error shapes, four different retry stories — and credentials sprinkled across the frontend if you're not careful. Chaining them into a "charge → email receipt → log result" flow usually means writing one-off orchestration code that nobody wants to maintain.
