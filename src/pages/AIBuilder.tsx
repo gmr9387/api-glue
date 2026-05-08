@@ -6,17 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { Sparkles, Loader2, ArrowRight, CheckCircle, Save, RotateCcw } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status-badge';
 
-interface GeneratedStep {
-  service: string;
-  action: string;
-  data: Record<string, any>;
-}
-
-interface GeneratedWorkflow {
-  name: string;
-  steps: GeneratedStep[];
-}
+interface GeneratedStep { service: string; action: string; data: Record<string, any>; }
+interface GeneratedWorkflow { name: string; steps: GeneratedStep[]; }
 
 const EXAMPLE_PROMPTS = [
   "When a payment is received in Stripe, send a confirmation email",
@@ -37,147 +31,110 @@ export default function AIBuilder() {
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
-    setLoading(true);
-    setResult(null);
-    setError(null);
-
+    setLoading(true); setResult(null); setError(null);
     try {
       const { data, error: fnError } = await supabase.functions.invoke('generate-workflow', {
         body: { prompt: prompt.trim() },
       });
-
       if (fnError) throw new Error(fnError.message);
       if (data?.error) throw new Error(data.error);
       if (!data?.workflow) throw new Error('No workflow returned');
-
       setResult(data.workflow);
     } catch (err: any) {
       setError(err.message || 'Failed to generate workflow');
       toast({ title: 'Generation failed', description: err.message, variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleSave = () => {
     if (!result) return;
     const workflowId = addWorkflow(result.name);
     for (const step of result.steps) {
-      addWorkflowStep(workflowId, {
-        service: step.service,
-        action: step.action,
-        data: step.data,
-      });
+      addWorkflowStep(workflowId, { service: step.service, action: step.action, data: step.data });
     }
-    toast({ title: `Workflow "${result.name}" saved!` });
+    toast({ title: `Workflow "${result.name}" saved` });
     navigate('/workflows');
   };
 
-  const handleReset = () => {
-    setResult(null);
-    setError(null);
-    setPrompt('');
-  };
+  const handleReset = () => { setResult(null); setError(null); setPrompt(''); };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-primary" />
-          AI Builder
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Describe what you want in plain English. We'll build the workflow for you.
-        </p>
-      </div>
+    <div className="px-6 lg:px-8 py-6 max-w-4xl mx-auto space-y-6">
+      <PageHeader
+        title="AI Builder"
+        description="Describe a workflow in plain English. We'll generate a validated, executable definition you can save and run."
+        actions={<StatusBadge tone="primary" dot>Powered by AI</StatusBadge>}
+      />
 
-      {/* Prompt Input */}
-      <div className="glass-panel p-5 space-y-4">
+      <section className="panel p-5 space-y-4">
         <Textarea
           value={prompt}
           onChange={e => setPrompt(e.target.value)}
-          placeholder="e.g. When a payment is received in Stripe, send me a confirmation email..."
-          className="min-h-[100px] font-mono text-sm bg-muted border-border/50 resize-none"
+          placeholder="e.g. When a payment is received in Stripe, send me a confirmation email…"
+          className="min-h-[110px] text-sm resize-none"
           maxLength={500}
           disabled={loading}
         />
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-mono text-muted-foreground">{prompt.length}/500</span>
-          <Button
-            onClick={handleGenerate}
-            disabled={!prompt.trim() || loading}
-            className="font-mono text-xs"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Generate Workflow
-              </>
-            )}
+          <span className="text-xs text-muted-foreground tabular-nums">{prompt.length}/500</span>
+          <Button onClick={handleGenerate} disabled={!prompt.trim() || loading}>
+            {loading
+              ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Generating…</>
+              : <><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Generate workflow</>}
           </Button>
         </div>
-      </div>
+      </section>
 
-      {/* Example Prompts */}
       {!result && !loading && (
-        <div className="space-y-2">
-          <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Try an example</p>
+        <section className="space-y-2">
+          <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Try an example</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {EXAMPLE_PROMPTS.map((ex, i) => (
               <button
                 key={i}
                 onClick={() => setPrompt(ex)}
-                className="text-left text-xs font-mono p-3 rounded-md border border-border/30 bg-muted/20 hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors"
+                className="text-left text-sm p-3 rounded-md border border-border bg-muted/30 hover:bg-muted hover:border-border-strong transition-colors text-foreground/80 hover:text-foreground"
               >
-                "{ex}"
+                {ex}
               </button>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Error */}
       {error && (
-        <div className="glass-panel p-4 border-destructive/30">
-          <p className="text-sm text-destructive font-mono">{error}</p>
-          <Button variant="outline" size="sm" onClick={handleGenerate} className="mt-3 text-xs font-mono">
-            <RotateCcw className="h-3 w-3 mr-1.5" /> Retry
+        <section className="panel p-4 border-danger/40 bg-danger/5">
+          <p className="text-sm text-danger">{error}</p>
+          <Button variant="outline" size="sm" onClick={handleGenerate} className="mt-3">
+            <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Retry
           </Button>
-        </div>
+        </section>
       )}
 
-      {/* Result Preview */}
       {result && (
-        <div className="glass-panel p-5 space-y-4">
+        <section className="panel p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">Generated Workflow</p>
-              <h3 className="font-display font-semibold text-foreground text-lg">{result.name}</h3>
+              <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Generated workflow</p>
+              <h3 className="font-display font-semibold text-foreground text-lg mt-0.5">{result.name}</h3>
             </div>
-            <div className="flex items-center gap-1.5 text-primary">
-              <CheckCircle className="h-4 w-4" />
-              <span className="text-[10px] font-mono uppercase tracking-wider">Validated</span>
-            </div>
+            <StatusBadge tone="success"><CheckCircle className="h-3 w-3" /> Validated</StatusBadge>
           </div>
 
-          {/* Steps */}
           <div className="space-y-2">
             {result.steps.map((step, i) => (
-              <div key={i} className="flex items-center gap-3">
+              <div key={i}>
                 {i > 0 && (
-                  <div className="flex items-center justify-center w-full -my-1">
+                  <div className="flex justify-center py-0.5">
                     <ArrowRight className="h-3 w-3 text-muted-foreground/40 rotate-90" />
                   </div>
                 )}
-                <div className="flex items-center gap-3 p-3 rounded-md bg-muted/20 border border-border/30 w-full">
-                  <span className="text-[10px] font-mono text-muted-foreground w-5 shrink-0">#{i + 1}</span>
-                  <div className="flex-1">
-                    <span className="font-mono text-xs text-foreground">{step.service}.{step.action}</span>
+                <div className="flex items-start gap-3 p-3 rounded-md bg-muted/40 border border-border">
+                  <span className="text-[11px] font-mono text-muted-foreground w-6 shrink-0 mt-0.5">#{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-mono text-sm text-foreground">{step.service}.{step.action}</span>
                     {Object.keys(step.data).length > 0 && (
-                      <pre className="text-[10px] font-mono text-muted-foreground mt-1 overflow-x-auto">
+                      <pre className="text-xs font-mono text-muted-foreground mt-1.5 overflow-x-auto scrollbar-thin">
                         {JSON.stringify(step.data, null, 2)}
                       </pre>
                     )}
@@ -187,26 +144,20 @@ export default function AIBuilder() {
             ))}
           </div>
 
-          {/* Raw JSON */}
           <details className="group">
-            <summary className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground">
-              View Raw JSON
+            <summary className="text-xs font-medium uppercase tracking-widest text-muted-foreground cursor-pointer hover:text-foreground">
+              View raw JSON
             </summary>
-            <pre className="mt-2 p-3 rounded-md bg-muted/30 border border-border/30 text-xs font-mono text-foreground overflow-x-auto">
+            <pre className="mt-2 p-3 rounded-md bg-muted/40 border border-border text-xs font-mono text-foreground overflow-x-auto scrollbar-thin">
               {JSON.stringify(result, null, 2)}
             </pre>
           </details>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <Button onClick={handleSave} className="font-mono text-xs">
-              <Save className="h-3.5 w-3.5 mr-1.5" /> Save to Workflows
-            </Button>
-            <Button variant="outline" onClick={handleReset} className="font-mono text-xs">
-              <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Start Over
-            </Button>
+          <div className="flex gap-2 pt-2">
+            <Button onClick={handleSave}><Save className="h-3.5 w-3.5 mr-1.5" /> Save to Workflows</Button>
+            <Button variant="outline" onClick={handleReset}><RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Start over</Button>
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
