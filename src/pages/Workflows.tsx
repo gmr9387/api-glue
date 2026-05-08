@@ -505,7 +505,7 @@ export default function Workflows() {
       <PageHeader
         title="Workflows"
         description={
-          <>Chain API calls and pass data between steps with <code className="font-mono text-xs px-1 py-0.5 rounded bg-muted text-foreground">{'{{0.data.id}}'}</code> placeholders.</> as any
+          <>Chain API calls and pass data between steps with <code className="font-mono text-xs px-1 py-0.5 rounded bg-muted text-foreground">{'{{0.data.id}}'}</code> placeholders.</>
         }
       />
 
