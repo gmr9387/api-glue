@@ -6,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Plus, Play, Trash2, CheckCircle, XCircle, Clock, GitBranch, ArrowDown, ChevronDown, History, Paperclip, Loader2, RotateCw, SkipForward } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { toast } from '@/hooks/use-toast';
 import { toast as sonner } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -499,29 +501,34 @@ export default function Workflows() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">Workflows</h1>
-        <p className="text-sm text-muted-foreground mt-1">Chain API calls and pass data between steps with <code className="text-accent">{'{{0.data.id}}'}</code> placeholders.</p>
-      </div>
+    <div className="px-6 lg:px-8 py-6 max-w-5xl mx-auto space-y-6">
+      <PageHeader
+        title="Workflows"
+        description={
+          <>Chain API calls and pass data between steps with <code className="font-mono text-xs px-1 py-0.5 rounded bg-muted text-foreground">{'{{0.data.id}}'}</code> placeholders.</> as any
+        }
+      />
 
-      <div className="glass-panel p-4 flex gap-3">
+      <div className="panel p-4 flex gap-3">
         <Input
           value={newName}
           onChange={e => setNewName(e.target.value)}
-          placeholder="Workflow name..."
-          className="h-9 font-mono text-xs bg-muted border-border/50 flex-1"
+          placeholder="Workflow name…"
+          className="h-9 text-sm flex-1"
           onKeyDown={e => e.key === 'Enter' && handleCreate()}
         />
-        <Button onClick={handleCreate} disabled={!newName.trim()} size="sm" className="text-xs font-mono">
-          <Plus className="h-3 w-3 mr-1.5" /> Create
+        <Button onClick={handleCreate} disabled={!newName.trim()} size="sm">
+          <Plus className="h-3.5 w-3.5 mr-1.5" /> Create
         </Button>
       </div>
 
       {workflows.length === 0 ? (
-        <div className="glass-panel p-12 text-center">
-          <GitBranch className="h-10 w-10 mx-auto mb-4 text-muted-foreground opacity-40" />
-          <p className="font-mono text-sm text-muted-foreground">No workflows yet. Create one to chain API calls together.</p>
+        <div className="panel">
+          <EmptyState
+            icon={<GitBranch className="h-5 w-5" />}
+            title="No workflows yet"
+            description="Create one to chain API calls and pass data between steps."
+          />
         </div>
       ) : (
         <div className="space-y-4">
