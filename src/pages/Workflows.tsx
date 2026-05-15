@@ -111,7 +111,7 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
         <CollapsibleContent className="pt-2 px-2">
           <div className="flex items-center justify-between mb-1">
             <p className="text-[10px] font-mono text-muted-foreground">
-              Input JSON — reference earlier steps with <code className="text-accent">{'{{0.data.id}}'}</code>
+              Input JSON — reference earlier steps with <code className="text-accent">{'{{0.output.id}}'}</code>
             </p>
             <input id={fileInputId} type="file" className="hidden" onChange={handleFileUpload} />
             <Button
@@ -505,7 +505,7 @@ export default function Workflows() {
       <PageHeader
         title="Workflows"
         description={
-          <>Chain API calls and pass data between steps with <code className="font-mono text-xs px-1 py-0.5 rounded bg-muted text-foreground">{'{{0.data.id}}'}</code> placeholders.</>
+          <>Chain API calls and pass data between steps with <code className="font-mono text-xs px-1 py-0.5 rounded bg-muted text-foreground">{'{{0.output.id}}'}</code> placeholders.</>
         }
       />
 
