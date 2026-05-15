@@ -16,7 +16,11 @@
 ### Completion Status
 Currently, the project is approximately **50% complete** based on the existing structure and functionality.
 
-### Contribution Guide
+## Screenshots and GIFs
+- **Screenshot 1**: ![Insert Screenshot 1 Description Here](assets/screenshot1.png "Screenshot Placeholder")
+- **GIF Example**: ![Insert GIF Description Here](assets/example.gif "GIF Placeholder")
+
+## Contribution Guide
 
 **1. Fork the repository:**
    - Click the "Fork" button at the top right corner of this repository to create your own copy.
