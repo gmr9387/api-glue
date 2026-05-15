@@ -125,6 +125,51 @@ export const useApiStore = create<ApiState>((set, get) => ({
   response: null,
   loading: false,
 
+  demoMode: false,
+  demoWorkflows: [],
+  runs: [],
+  connectorHealth: [],
+  operationalLogs: [],
+
+  loadDemoOperations: () => {
+    for (const name of Object.keys(SUPPORTED_ACTIONS)) {
+      const actions = SUPPORTED_ACTIONS[name];
+      set(s => ({
+        connectedServices: [
+          ...s.connectedServices.filter(c => c.name !== name),
+          { name, actions, connectedAt: new Date() },
+        ],
+      }));
+    }
+    const syntheticLogs: LogEntry[] = demoRuns.map(r => ({
+      id: r.runId,
+      timestamp: new Date(r.timestamp),
+      serviceAction: `${r.connector}.${r.workflowName}`,
+      status: r.status === 'succeeded' ? 'success' : r.status === 'failed' ? 'error' : 'pending',
+      duration: r.executionDurationMs,
+      error: r.failureReason,
+    }));
+    set({
+      demoMode: true,
+      demoWorkflows,
+      runs: demoRuns,
+      connectorHealth: demoConnectorHealth,
+      operationalLogs: demoOperationalLogs,
+      logs: syntheticLogs,
+    });
+  },
+
+  clearDemoOperations: () => {
+    set({
+      demoMode: false,
+      demoWorkflows: [],
+      runs: [],
+      connectorHealth: [],
+      operationalLogs: [],
+      logs: [],
+    });
+  },
+
   connect: (serviceName: string) => {
     const actions = SUPPORTED_ACTIONS[serviceName];
     if (!actions) {
