@@ -1,0 +1,28 @@
+name: SMS Alert Failure Recovery
+
+on:
+  workflow_dispatch:
+
+jobs:
+  send-sms:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send SMS alert
+        run: |
+          echo "SMS alert sent."
+
+  simulate-failure:
+    runs-on: ubuntu-latest
+    needs: send-sms
+    steps:
+      - name: Simulate Twilio failure
+        run: |
+          echo "Twilio configuration failed."
+
+  retry:
+    runs-on: ubuntu-latest
+    needs: simulate-failure
+    steps:
+      - name: Retry sending SMS
+        run: |
+          echo "Retry attempted."
