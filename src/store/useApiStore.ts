@@ -1,5 +1,15 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  demoWorkflows,
+  demoRuns,
+  demoConnectorHealth,
+  demoOperationalLogs,
+  type DemoWorkflow,
+  type DemoRun,
+  type DemoConnectorHealth,
+  type DemoOperationalLog,
+} from '@/lib/demoData';
 
 const SUPPORTED_ACTIONS: Record<string, string[]> = {
   stripe: ['charge', 'refund', 'createCustomer'],
