@@ -1,5 +1,15 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  demoWorkflows,
+  demoRuns,
+  demoConnectorHealth,
+  demoOperationalLogs,
+  type DemoWorkflow,
+  type DemoRun,
+  type DemoConnectorHealth,
+  type DemoOperationalLog,
+} from '@/lib/demoData';
 
 const SUPPORTED_ACTIONS: Record<string, string[]> = {
   stripe: ['charge', 'refund', 'createCustomer'],
@@ -55,6 +65,16 @@ interface ApiState {
   response: any | null;
   loading: boolean;
 
+  // Demo / operational surfaces
+  demoMode: boolean;
+  demoWorkflows: DemoWorkflow[];
+  runs: DemoRun[];
+  connectorHealth: DemoConnectorHealth[];
+  operationalLogs: DemoOperationalLog[];
+
+  loadDemoOperations: () => void;
+  clearDemoOperations: () => void;
+
   connect: (serviceName: string) => { success: boolean; error?: string };
   disconnect: (serviceName: string) => void;
   execute: (serviceAction: string, data: any) => Promise<any>;
@@ -72,7 +92,7 @@ interface ApiState {
   deleteWorkflow: (workflowId: string) => void;
 }
 
-// Resolve placeholders like {{1.data.id}} or {{0.data.text}} from prior step results
+// Resolve placeholders like {{1.output.id}} or {{0.output.text}} from prior step results
 function interpolate(value: any, context: Record<string, any>): any {
   if (typeof value === 'string') {
     // If the entire string is a single placeholder, return the raw resolved value (preserves type)
@@ -104,6 +124,51 @@ export const useApiStore = create<ApiState>((set, get) => ({
   selectedAction: null,
   response: null,
   loading: false,
+
+  demoMode: false,
+  demoWorkflows: [],
+  runs: [],
+  connectorHealth: [],
+  operationalLogs: [],
+
+  loadDemoOperations: () => {
+    for (const name of Object.keys(SUPPORTED_ACTIONS)) {
+      const actions = SUPPORTED_ACTIONS[name];
+      set(s => ({
+        connectedServices: [
+          ...s.connectedServices.filter(c => c.name !== name),
+          { name, actions, connectedAt: new Date() },
+        ],
+      }));
+    }
+    const syntheticLogs: LogEntry[] = demoRuns.map(r => ({
+      id: r.runId,
+      timestamp: new Date(r.timestamp),
+      serviceAction: `${r.connector}.${r.workflowName}`,
+      status: r.status === 'succeeded' ? 'success' : r.status === 'failed' ? 'error' : 'pending',
+      duration: r.executionDurationMs,
+      error: r.failureReason,
+    }));
+    set({
+      demoMode: true,
+      demoWorkflows,
+      runs: demoRuns,
+      connectorHealth: demoConnectorHealth,
+      operationalLogs: demoOperationalLogs,
+      logs: syntheticLogs,
+    });
+  },
+
+  clearDemoOperations: () => {
+    set({
+      demoMode: false,
+      demoWorkflows: [],
+      runs: [],
+      connectorHealth: [],
+      operationalLogs: [],
+      logs: [],
+    });
+  },
 
   connect: (serviceName: string) => {
     const actions = SUPPORTED_ACTIONS[serviceName];

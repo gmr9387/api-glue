@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Plus, Play, Trash2, CheckCircle, XCircle, Clock, GitBranch, ArrowDown, ChevronDown, History, Paperclip, Loader2, RotateCw, SkipForward } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { toast } from '@/hooks/use-toast';
 import { toast as sonner } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -111,7 +112,7 @@ function StepEditor({ workflowId, step, index }: { workflowId: string; step: Wor
         <CollapsibleContent className="pt-2 px-2">
           <div className="flex items-center justify-between mb-1">
             <p className="text-[10px] font-mono text-muted-foreground">
-              Input JSON — reference earlier steps with <code className="text-accent">{'{{0.data.id}}'}</code>
+              Input JSON — reference earlier steps with <code className="text-accent">{'{{0.output.id}}'}</code>
             </p>
             <input id={fileInputId} type="file" className="hidden" onChange={handleFileUpload} />
             <Button
@@ -488,9 +489,69 @@ function RunHistory() {
   );
 }
 
+function DemoWorkflowsSection() {
+  const demoMode = useApiStore(s => s.demoMode);
+  const demoWorkflows = useApiStore(s => s.demoWorkflows);
+  if (!demoMode || demoWorkflows.length === 0) return null;
+
+  const tone = (status: string): 'success' | 'danger' | 'info' | 'warning' =>
+    status === 'succeeded' ? 'success'
+    : status === 'failed' ? 'danger'
+    : status === 'retrying' ? 'warning'
+    : 'info';
+
+  return (
+    <section className="panel p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="font-display font-semibold text-foreground">Demo workflows</h3>
+          <p className="text-xs text-muted-foreground">Read-only fixtures from <code className="font-mono">demoData.ts</code> — illustrate status, retries, and durations.</p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {demoWorkflows.map(w => (
+          <div key={w.id} className="rounded-md border border-border bg-muted/20 p-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 min-w-0">
+                <GitBranch className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="text-sm font-medium text-foreground truncate">{w.name}</span>
+                <span className="text-[11px] font-mono text-muted-foreground capitalize">· {w.connector}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <StatusBadge tone={tone(w.status)} dot>{w.status}</StatusBadge>
+                <span className="text-[11px] font-mono text-muted-foreground tabular-nums">{(w.executionDurationMs / 1000).toFixed(1)}s</span>
+                <span className="text-[11px] font-mono text-muted-foreground">retries ×{w.retryCount}</span>
+                <span className="text-[11px] font-mono text-muted-foreground">{new Date(w.lastRun).toLocaleString()}</span>
+              </div>
+            </div>
+            {w.failureReason && (
+              <p className="mt-1.5 text-[11px] font-mono text-destructive">⚠ {w.failureReason}</p>
+            )}
+            <ul className="mt-2 space-y-1">
+              {w.steps.map((s, i) => (
+                <li key={i} className="text-[11px] font-mono text-muted-foreground flex items-center gap-2">
+                  {s.status === 'succeeded' && <CheckCircle className="h-3 w-3 text-primary shrink-0" />}
+                  {s.status === 'failed' && <XCircle className="h-3 w-3 text-destructive shrink-0" />}
+                  {s.status === 'retrying' && <Clock className="h-3 w-3 text-accent shrink-0" />}
+                  {s.status === 'skipped' && <SkipForward className="h-3 w-3 text-muted-foreground shrink-0" />}
+                  <span>#{i + 1} {s.name}</span>
+                  <span className="text-muted-foreground/70">({(s.durationMs / 1000).toFixed(1)}s)</span>
+                  {s.reason && <span className="text-destructive truncate">— {s.reason}</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function Workflows() {
   const workflows = useApiStore(s => s.workflows);
   const addWorkflow = useApiStore(s => s.addWorkflow);
+  const demoMode = useApiStore(s => s.demoMode);
+  const loadDemoOperations = useApiStore(s => s.loadDemoOperations);
   const [newName, setNewName] = useState('');
 
   const handleCreate = () => {
@@ -505,9 +566,16 @@ export default function Workflows() {
       <PageHeader
         title="Workflows"
         description={
-          <>Chain API calls and pass data between steps with <code className="font-mono text-xs px-1 py-0.5 rounded bg-muted text-foreground">{'{{0.data.id}}'}</code> placeholders.</>
+          <>Chain API calls and pass data between steps with <code className="font-mono text-xs px-1 py-0.5 rounded bg-muted text-foreground">{'{{0.output.id}}'}</code> placeholders.</>
+        }
+        actions={
+          !demoMode ? (
+            <Button variant="outline" size="sm" onClick={loadDemoOperations}>Load Demo Operations</Button>
+          ) : undefined
         }
       />
+
+      <DemoWorkflowsSection />
 
       <div className="panel p-4 flex gap-3">
         <Input
@@ -526,7 +594,7 @@ export default function Workflows() {
         <div className="panel">
           <EmptyState
             icon={<GitBranch className="h-5 w-5" />}
-            title="No workflows yet"
+            title="No user workflows yet"
             description="Create one to chain API calls and pass data between steps."
           />
         </div>
@@ -540,3 +608,4 @@ export default function Workflows() {
     </div>
   );
 }
+

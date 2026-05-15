@@ -1,5 +1,5 @@
 import { useApiStore } from '@/store/useApiStore';
-import { Activity, CheckCircle, XCircle, Plug, Zap, Clock, ArrowRight } from 'lucide-react';
+import { Activity, CheckCircle, XCircle, Plug, Zap, Clock, ArrowRight, Sparkles, Trash2, GitBranch, Timer } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -8,14 +8,34 @@ import { StatCard } from '@/components/ui/stat-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { EmptyState } from '@/components/ui/empty-state';
 
+const healthTone = (status: string) =>
+  status === 'healthy' ? 'success'
+  : status === 'degraded' ? 'warning'
+  : status === 'retrying' ? 'info'
+  : 'danger';
+
 export default function Dashboard() {
   const connectedServices = useApiStore(s => s.connectedServices);
   const logs = useApiStore(s => s.logs);
+  const demoMode = useApiStore(s => s.demoMode);
+  const demoWorkflows = useApiStore(s => s.demoWorkflows);
+  const runs = useApiStore(s => s.runs);
+  const connectorHealth = useApiStore(s => s.connectorHealth);
+  const loadDemoOperations = useApiStore(s => s.loadDemoOperations);
+  const clearDemoOperations = useApiStore(s => s.clearDemoOperations);
 
   const totalExecutions = logs.length;
   const successCount = logs.filter(l => l.status === 'success').length;
   const errorCount = logs.filter(l => l.status === 'error').length;
   const successRate = totalExecutions > 0 ? Math.round((successCount / totalExecutions) * 100) : 0;
+
+  // Demo-aware metrics
+  const totalWorkflows = demoMode ? demoWorkflows.length : 0;
+  const successfulRuns = demoMode ? runs.filter(r => r.status === 'succeeded').length : successCount;
+  const failedRuns = demoMode ? runs.filter(r => r.status === 'failed').length : errorCount;
+  const avgDurationMs = demoMode && runs.length
+    ? Math.round(runs.reduce((acc, r) => acc + r.executionDurationMs, 0) / runs.length)
+    : 0;
 
   return (
     <div className="px-6 lg:px-8 py-6 max-w-7xl mx-auto space-y-6">
@@ -24,6 +44,15 @@ export default function Dashboard() {
         description="Operational overview of your API Unity OS instance — connectors, executions, and recent activity."
         actions={
           <>
+            {demoMode ? (
+              <Button variant="outline" size="sm" onClick={clearDemoOperations}>
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Clear demo data
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={loadDemoOperations}>
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Load Demo Operations
+              </Button>
+            )}
             <Button asChild variant="outline" size="sm">
               <Link to="/connectors">Manage connectors</Link>
             </Button>
@@ -34,17 +63,60 @@ export default function Dashboard() {
         }
       />
 
+      {demoMode && (
+        <div className="rounded-md border border-info/30 bg-info/5 px-4 py-2.5 text-xs text-foreground flex items-center gap-2">
+          <Sparkles className="h-3.5 w-3.5 text-info" />
+          <span><strong>Demo mode</strong> is on — workflows, runs, and connector health below are seeded fixtures from <code className="font-mono">src/lib/demoData.ts</code>.</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Connected APIs" value={connectedServices.length} icon={<Plug className="h-4 w-4" />} hint={`of 4 available`} />
-        <StatCard label="Executions" value={totalExecutions} icon={<Zap className="h-4 w-4" />} hint="across this session" />
-        <StatCard
-          label="Success rate"
-          value={`${successRate}%`}
-          icon={<CheckCircle className="h-4 w-4" />}
-          delta={totalExecutions > 0 ? { value: `${successCount}`, trend: errorCount === 0 ? 'up' : 'neutral' } : undefined}
-        />
-        <StatCard label="Errors" value={errorCount} icon={<XCircle className="h-4 w-4" />} hint={errorCount > 0 ? 'review activity' : 'all clear'} />
+        {demoMode ? (
+          <>
+            <StatCard label="Workflows" value={totalWorkflows} icon={<GitBranch className="h-4 w-4" />} hint="loaded from demo" />
+            <StatCard label="Successful runs" value={successfulRuns} icon={<CheckCircle className="h-4 w-4" />} hint={`of ${runs.length}`} />
+            <StatCard label="Failed runs" value={failedRuns} icon={<XCircle className="h-4 w-4" />} hint={failedRuns > 0 ? 'review runs' : 'all clear'} />
+            <StatCard label="Avg duration" value={`${(avgDurationMs / 1000).toFixed(1)}s`} icon={<Timer className="h-4 w-4" />} hint="across demo runs" />
+          </>
+        ) : (
+          <>
+            <StatCard label="Connected APIs" value={connectedServices.length} icon={<Plug className="h-4 w-4" />} hint="of 4 available" />
+            <StatCard label="Executions" value={totalExecutions} icon={<Zap className="h-4 w-4" />} hint="across this session" />
+            <StatCard
+              label="Success rate"
+              value={`${successRate}%`}
+              icon={<CheckCircle className="h-4 w-4" />}
+              delta={totalExecutions > 0 ? { value: `${successCount}`, trend: errorCount === 0 ? 'up' : 'neutral' } : undefined}
+            />
+            <StatCard label="Errors" value={errorCount} icon={<XCircle className="h-4 w-4" />} hint={errorCount > 0 ? 'review activity' : 'all clear'} />
+          </>
+        )}
       </div>
+
+      {demoMode && connectorHealth.length > 0 && (
+        <section className="panel p-5">
+          <header className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-sm font-semibold text-foreground">Connector health</h2>
+            <Link to="/connectors" className="text-xs text-primary hover:underline">View all</Link>
+          </header>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {connectorHealth.map(h => (
+              <li key={h.connector} className="rounded-md border border-border bg-muted/30 p-3 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground capitalize">{h.connector}</span>
+                  <StatusBadge tone={healthTone(h.status) as any} dot>{h.status}</StatusBadge>
+                </div>
+                <div className="text-[11px] font-mono text-muted-foreground tabular-nums">
+                  latency {h.latencyMs != null ? `${h.latencyMs}ms` : '—'} · failures {Math.round(h.failureRate * 100)}%
+                </div>
+                <div className="text-[11px] font-mono text-muted-foreground truncate">
+                  last ok {h.lastSuccessfulExecution ? new Date(h.lastSuccessfulExecution).toLocaleString() : '—'}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <section className="panel p-5 lg:col-span-1">
@@ -56,8 +128,8 @@ export default function Dashboard() {
             <EmptyState
               icon={<Plug className="h-5 w-5" />}
               title="No services connected"
-              description="Connect a service to start executing API calls."
-              action={<Button asChild size="sm" variant="outline"><Link to="/connectors">Connect a service</Link></Button>}
+              description="Connect a service or click Load Demo Operations to see the platform in action."
+              action={<Button size="sm" variant="outline" onClick={loadDemoOperations}><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Load demo</Button>}
             />
           ) : (
             <ul className="space-y-2">
@@ -89,7 +161,7 @@ export default function Dashboard() {
             <EmptyState
               icon={<Zap className="h-5 w-5" />}
               title="No activity yet"
-              description="Execute your first request from the playground to see it stream in here."
+              description="Execute your first request from the playground — or load demo operations to populate the feed."
               action={<Button asChild size="sm"><Link to="/playground">Open playground</Link></Button>}
             />
           ) : (
@@ -105,7 +177,7 @@ export default function Dashboard() {
                       {log.status}
                     </StatusBadge>
                     {log.duration !== undefined && (
-                      <span className="font-mono text-[11px] text-muted-foreground tabular-nums shrink-0 w-14 text-right">{log.duration}ms</span>
+                      <span className="font-mono text-[11px] text-muted-foreground tabular-nums shrink-0 w-16 text-right">{log.duration}ms</span>
                     )}
                     <span className="font-mono text-[11px] text-muted-foreground tabular-nums shrink-0">
                       {log.timestamp.toLocaleTimeString()}
