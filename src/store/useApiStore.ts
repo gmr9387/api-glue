@@ -65,6 +65,16 @@ interface ApiState {
   response: any | null;
   loading: boolean;
 
+  // Demo / operational surfaces
+  demoMode: boolean;
+  demoWorkflows: DemoWorkflow[];
+  runs: DemoRun[];
+  connectorHealth: DemoConnectorHealth[];
+  operationalLogs: DemoOperationalLog[];
+
+  loadDemoOperations: () => void;
+  clearDemoOperations: () => void;
+
   connect: (serviceName: string) => { success: boolean; error?: string };
   disconnect: (serviceName: string) => void;
   execute: (serviceAction: string, data: any) => Promise<any>;
