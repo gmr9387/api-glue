@@ -92,7 +92,7 @@ interface ApiState {
   deleteWorkflow: (workflowId: string) => void;
 }
 
-// Resolve placeholders like {{1.data.id}} or {{0.data.text}} from prior step results
+// Resolve placeholders like {{1.output.id}} or {{0.output.text}} from prior step results
 function interpolate(value: any, context: Record<string, any>): any {
   if (typeof value === 'string') {
     // If the entire string is a single placeholder, return the raw resolved value (preserves type)
