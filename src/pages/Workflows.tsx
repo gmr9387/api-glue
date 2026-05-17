@@ -500,6 +500,19 @@ function DemoWorkflowsSection() {
     : status === 'retrying' ? 'warning'
     : 'info';
 
+  const segBg = (status: string) =>
+    status === 'succeeded' ? 'bg-success'
+    : status === 'failed' ? 'bg-danger'
+    : status === 'retrying' ? 'bg-warning'
+    : status === 'skipped' ? 'bg-muted-foreground/40'
+    : 'bg-info';
+
+  const accentBorder = (status: string) =>
+    status === 'succeeded' ? 'border-l-success'
+    : status === 'failed' ? 'border-l-danger'
+    : status === 'retrying' ? 'border-l-warning'
+    : 'border-l-info';
+
   return (
     <section className="panel p-5">
       <div className="flex items-center justify-between mb-3">
@@ -507,41 +520,65 @@ function DemoWorkflowsSection() {
           <h3 className="font-display font-semibold text-foreground">Demo workflows</h3>
           <p className="text-xs text-muted-foreground">Read-only fixtures from <code className="font-mono">demoData.ts</code> — illustrate status, retries, and durations.</p>
         </div>
+        <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{demoWorkflows.length} pipelines</span>
       </div>
-      <div className="space-y-2">
-        {demoWorkflows.map(w => (
-          <div key={w.id} className="rounded-md border border-border bg-muted/20 p-3">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div className="flex items-center gap-2 min-w-0">
-                <GitBranch className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="text-sm font-medium text-foreground truncate">{w.name}</span>
-                <span className="text-[11px] font-mono text-muted-foreground capitalize">· {w.connector}</span>
+      <div className="space-y-2.5">
+        {demoWorkflows.map(w => {
+          const totalDur = w.steps.reduce((a, s) => a + s.durationMs, 0) || 1;
+          return (
+            <div
+              key={w.id}
+              className={`group rounded-md border border-border border-l-2 ${accentBorder(w.status)} bg-muted/20 p-3 transition-colors hover:bg-muted/40 hover:border-border-strong`}
+            >
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2 min-w-0">
+                  <GitBranch className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium text-foreground truncate">{w.name}</span>
+                  <span className="text-[11px] font-mono text-muted-foreground capitalize">· {w.connector}</span>
+                  <span className="text-[10px] font-mono text-muted-foreground/70">· {w.steps.length} steps</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusBadge tone={tone(w.status)} dot>{w.status}</StatusBadge>
+                  <span className="text-[11px] font-mono text-muted-foreground tabular-nums">{(w.executionDurationMs / 1000).toFixed(1)}s</span>
+                  <span className={`text-[11px] font-mono tabular-nums ${w.retryCount > 0 ? 'text-warning' : 'text-muted-foreground'}`}>×{w.retryCount} retries</span>
+                  <span className="text-[11px] font-mono text-muted-foreground hidden md:inline">{new Date(w.lastRun).toLocaleString()}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <StatusBadge tone={tone(w.status)} dot>{w.status}</StatusBadge>
-                <span className="text-[11px] font-mono text-muted-foreground tabular-nums">{(w.executionDurationMs / 1000).toFixed(1)}s</span>
-                <span className="text-[11px] font-mono text-muted-foreground">retries ×{w.retryCount}</span>
-                <span className="text-[11px] font-mono text-muted-foreground">{new Date(w.lastRun).toLocaleString()}</span>
+
+              {/* Execution timeline — proportional segments per step */}
+              <div className="mt-2.5 flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                {w.steps.map((s, i) => (
+                  <div
+                    key={i}
+                    title={`${s.name} · ${(s.durationMs / 1000).toFixed(1)}s · ${s.status}`}
+                    className={`${segBg(s.status)} h-full ${i > 0 ? 'border-l border-background' : ''}`}
+                    style={{ width: `${(s.durationMs / totalDur) * 100}%` }}
+                  />
+                ))}
               </div>
+
+              {w.failureReason && (
+                <p className="mt-2 text-[11px] font-mono text-danger flex items-center gap-1.5">
+                  <XCircle className="h-3 w-3" /> {w.failureReason}
+                </p>
+              )}
+              <ul className="mt-2 space-y-1">
+                {w.steps.map((s, i) => (
+                  <li key={i} className="text-[11px] font-mono text-muted-foreground flex items-center gap-2">
+                    {s.status === 'succeeded' && <CheckCircle className="h-3 w-3 text-success shrink-0" />}
+                    {s.status === 'failed' && <XCircle className="h-3 w-3 text-danger shrink-0" />}
+                    {s.status === 'retrying' && <Clock className="h-3 w-3 text-warning shrink-0" />}
+                    {s.status === 'skipped' && <SkipForward className="h-3 w-3 text-muted-foreground shrink-0" />}
+                    <span className="text-foreground/80">#{i + 1}</span>
+                    <span>{s.name}</span>
+                    <span className="text-muted-foreground/60 tabular-nums">({(s.durationMs / 1000).toFixed(1)}s)</span>
+                    {s.reason && <span className="text-danger truncate">— {s.reason}</span>}
+                  </li>
+                ))}
+              </ul>
             </div>
-            {w.failureReason && (
-              <p className="mt-1.5 text-[11px] font-mono text-destructive">⚠ {w.failureReason}</p>
-            )}
-            <ul className="mt-2 space-y-1">
-              {w.steps.map((s, i) => (
-                <li key={i} className="text-[11px] font-mono text-muted-foreground flex items-center gap-2">
-                  {s.status === 'succeeded' && <CheckCircle className="h-3 w-3 text-primary shrink-0" />}
-                  {s.status === 'failed' && <XCircle className="h-3 w-3 text-destructive shrink-0" />}
-                  {s.status === 'retrying' && <Clock className="h-3 w-3 text-accent shrink-0" />}
-                  {s.status === 'skipped' && <SkipForward className="h-3 w-3 text-muted-foreground shrink-0" />}
-                  <span>#{i + 1} {s.name}</span>
-                  <span className="text-muted-foreground/70">({(s.durationMs / 1000).toFixed(1)}s)</span>
-                  {s.reason && <span className="text-destructive truncate">— {s.reason}</span>}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
