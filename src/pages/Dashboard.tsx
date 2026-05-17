@@ -73,22 +73,23 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {demoMode ? (
           <>
-            <StatCard label="Workflows" value={totalWorkflows} icon={<GitBranch className="h-4 w-4" />} hint="loaded from demo" />
-            <StatCard label="Successful runs" value={successfulRuns} icon={<CheckCircle className="h-4 w-4" />} hint={`of ${runs.length}`} />
-            <StatCard label="Failed runs" value={failedRuns} icon={<XCircle className="h-4 w-4" />} hint={failedRuns > 0 ? 'review runs' : 'all clear'} />
-            <StatCard label="Avg duration" value={`${(avgDurationMs / 1000).toFixed(1)}s`} icon={<Timer className="h-4 w-4" />} hint="across demo runs" />
+            <StatCard tone="primary" label="Workflows" value={totalWorkflows} icon={<GitBranch className="h-4 w-4" />} hint="loaded from demo" />
+            <StatCard tone="success" label="Successful runs" value={successfulRuns} icon={<CheckCircle className="h-4 w-4" />} hint={`of ${runs.length} total`} />
+            <StatCard tone={failedRuns > 0 ? 'danger' : 'neutral'} label="Failed runs" value={failedRuns} icon={<XCircle className="h-4 w-4" />} hint={failedRuns > 0 ? 'review runs' : 'all clear'} />
+            <StatCard tone="info" label="Avg duration" value={`${(avgDurationMs / 1000).toFixed(1)}s`} icon={<Timer className="h-4 w-4" />} hint="across demo runs" />
           </>
         ) : (
           <>
-            <StatCard label="Connected APIs" value={connectedServices.length} icon={<Plug className="h-4 w-4" />} hint="of 4 available" />
-            <StatCard label="Executions" value={totalExecutions} icon={<Zap className="h-4 w-4" />} hint="across this session" />
+            <StatCard tone="primary" label="Connected APIs" value={connectedServices.length} icon={<Plug className="h-4 w-4" />} hint="of 4 available" />
+            <StatCard tone="info" label="Executions" value={totalExecutions} icon={<Zap className="h-4 w-4" />} hint="across this session" />
             <StatCard
+              tone={errorCount === 0 && totalExecutions > 0 ? 'success' : 'neutral'}
               label="Success rate"
               value={`${successRate}%`}
               icon={<CheckCircle className="h-4 w-4" />}
               delta={totalExecutions > 0 ? { value: `${successCount}`, trend: errorCount === 0 ? 'up' : 'neutral' } : undefined}
             />
-            <StatCard label="Errors" value={errorCount} icon={<XCircle className="h-4 w-4" />} hint={errorCount > 0 ? 'review activity' : 'all clear'} />
+            <StatCard tone={errorCount > 0 ? 'danger' : 'neutral'} label="Errors" value={errorCount} icon={<XCircle className="h-4 w-4" />} hint={errorCount > 0 ? 'review activity' : 'all clear'} />
           </>
         )}
       </div>
