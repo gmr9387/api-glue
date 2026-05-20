@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Plus, Play, Trash2, CheckCircle, XCircle, Clock, GitBranch, ArrowDown, ChevronDown, History, Paperclip, Loader2, RotateCw, SkipForward } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ExecutionGraph } from '@/components/mission/ExecutionGraph';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { toast } from '@/hooks/use-toast';
 import { toast as sonner } from 'sonner';
@@ -562,20 +563,14 @@ function DemoWorkflowsSection() {
                   <XCircle className="h-3 w-3" /> {w.failureReason}
                 </p>
               )}
-              <ul className="mt-2 space-y-1">
-                {w.steps.map((s, i) => (
-                  <li key={i} className="text-[11px] font-mono text-muted-foreground flex items-center gap-2">
-                    {s.status === 'succeeded' && <CheckCircle className="h-3 w-3 text-success shrink-0" />}
-                    {s.status === 'failed' && <XCircle className="h-3 w-3 text-danger shrink-0" />}
-                    {s.status === 'retrying' && <Clock className="h-3 w-3 text-warning shrink-0" />}
-                    {s.status === 'skipped' && <SkipForward className="h-3 w-3 text-muted-foreground shrink-0" />}
-                    <span className="text-foreground/80">#{i + 1}</span>
-                    <span>{s.name}</span>
-                    <span className="text-muted-foreground/60 tabular-nums">({(s.durationMs / 1000).toFixed(1)}s)</span>
-                    {s.reason && <span className="text-danger truncate">— {s.reason}</span>}
-                  </li>
-                ))}
-              </ul>
+              <details className="mt-3 group">
+                <summary className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                  execution graph · {w.steps.length} nodes
+                </summary>
+                <div className="mt-2">
+                  <ExecutionGraph workflow={w} />
+                </div>
+              </details>
             </div>
           );
         })}
