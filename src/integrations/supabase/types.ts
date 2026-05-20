@@ -211,6 +211,33 @@ export type Database = {
         }
         Relationships: []
       }
+      queue_partitions: {
+        Row: {
+          description: string | null
+          max_concurrency: number
+          partition_key: string
+          paused: boolean
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          description?: string | null
+          max_concurrency?: number
+          partition_key: string
+          paused?: boolean
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          description?: string | null
+          max_concurrency?: number
+          partition_key?: string
+          paused?: boolean
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       runtime_audit_log: {
         Row: {
           action: string
@@ -366,6 +393,42 @@ export type Database = {
         }
         Relationships: []
       }
+      telemetry_aggregates: {
+        Row: {
+          created_at: string
+          id: string
+          metric: string
+          sample_count: number
+          scope: string
+          tenant_id: string | null
+          value: number
+          window_seconds: number
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metric: string
+          sample_count?: number
+          scope: string
+          tenant_id?: string | null
+          value: number
+          window_seconds?: number
+          window_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metric?: string
+          sample_count?: number
+          scope?: string
+          tenant_id?: string | null
+          value?: number
+          window_seconds?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       worker_heartbeats: {
         Row: {
           jobs_processed: number
@@ -386,6 +449,45 @@ export type Database = {
           last_seen_at?: string
           metadata?: Json
           status?: string
+          worker_id?: string
+        }
+        Relationships: []
+      }
+      worker_registry: {
+        Row: {
+          active_jobs: number
+          capabilities: string[]
+          drained_at: string | null
+          health_state: string
+          last_heartbeat: string
+          max_concurrency: number
+          metadata: Json
+          region: string
+          started_at: string
+          worker_id: string
+        }
+        Insert: {
+          active_jobs?: number
+          capabilities?: string[]
+          drained_at?: string | null
+          health_state?: string
+          last_heartbeat?: string
+          max_concurrency?: number
+          metadata?: Json
+          region?: string
+          started_at?: string
+          worker_id: string
+        }
+        Update: {
+          active_jobs?: number
+          capabilities?: string[]
+          drained_at?: string | null
+          health_state?: string
+          last_heartbeat?: string
+          max_concurrency?: number
+          metadata?: Json
+          region?: string
+          started_at?: string
           worker_id?: string
         }
         Relationships: []
@@ -553,9 +655,11 @@ export type Database = {
       }
       workflow_events: {
         Row: {
+          archived_at: string | null
           data: Json
           id: string
           message: string | null
+          partition_key: string
           run_id: string | null
           severity: string
           source: string | null
@@ -565,9 +669,11 @@ export type Database = {
           type: string
         }
         Insert: {
+          archived_at?: string | null
           data?: Json
           id?: string
           message?: string | null
+          partition_key?: string
           run_id?: string | null
           severity?: string
           source?: string | null
@@ -577,9 +683,11 @@ export type Database = {
           type: string
         }
         Update: {
+          archived_at?: string | null
           data?: Json
           id?: string
           message?: string | null
+          partition_key?: string
           run_id?: string | null
           severity?: string
           source?: string | null
@@ -670,11 +778,15 @@ export type Database = {
           idempotency_key: string
           lease_expires_at: string | null
           max_retries: number
+          partition_key: string
           payload: Json
           priority: number
+          priority_class: string
+          region: string
           retry_attempt: number
           run_id: string
           scheduled_at: string
+          shard_id: number
           started_at: string | null
           state: string
           step_id: string | null
@@ -693,11 +805,15 @@ export type Database = {
           idempotency_key: string
           lease_expires_at?: string | null
           max_retries?: number
+          partition_key?: string
           payload?: Json
           priority?: number
+          priority_class?: string
+          region?: string
           retry_attempt?: number
           run_id: string
           scheduled_at?: string
+          shard_id?: number
           started_at?: string | null
           state?: string
           step_id?: string | null
@@ -716,11 +832,15 @@ export type Database = {
           idempotency_key?: string
           lease_expires_at?: string | null
           max_retries?: number
+          partition_key?: string
           payload?: Json
           priority?: number
+          priority_class?: string
+          region?: string
           retry_attempt?: number
           run_id?: string
           scheduled_at?: string
+          shard_id?: number
           started_at?: string | null
           state?: string
           step_id?: string | null
@@ -778,9 +898,12 @@ export type Database = {
           error: string | null
           finished_at: string | null
           id: string
+          partition_key: string
           payload: Json
+          region: string
           result: Json | null
           retry_count: number
+          shard_id: number
           started_at: string
           state: string
           status: string
@@ -801,9 +924,12 @@ export type Database = {
           error?: string | null
           finished_at?: string | null
           id?: string
+          partition_key?: string
           payload?: Json
+          region?: string
           result?: Json | null
           retry_count?: number
+          shard_id?: number
           started_at?: string
           state?: string
           status?: string
@@ -824,9 +950,12 @@ export type Database = {
           error?: string | null
           finished_at?: string | null
           id?: string
+          partition_key?: string
           payload?: Json
+          region?: string
           result?: Json | null
           retry_count?: number
+          shard_id?: number
           started_at?: string
           state?: string
           status?: string
@@ -923,6 +1052,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aggregate_telemetry: {
+        Args: never
+        Returns: {
+          rows_written: number
+        }[]
+      }
+      archive_old_events: {
+        Args: { _older_than_minutes?: number }
+        Returns: {
+          archived: number
+        }[]
+      }
       claim_next_job: {
         Args: { _worker_id: string }
         Returns: {
@@ -936,11 +1077,15 @@ export type Database = {
           idempotency_key: string
           lease_expires_at: string | null
           max_retries: number
+          partition_key: string
           payload: Json
           priority: number
+          priority_class: string
+          region: string
           retry_attempt: number
           run_id: string
           scheduled_at: string
+          shard_id: number
           started_at: string | null
           state: string
           step_id: string | null
@@ -961,10 +1106,22 @@ export type Database = {
           breached: number
         }[]
       }
+      drain_worker: { Args: { _worker_id: string }; Returns: undefined }
       expire_pending_approvals: {
         Args: never
         Returns: {
           expired: number
+        }[]
+      }
+      pause_partition: {
+        Args: { _partition_key: string; _paused?: boolean }
+        Returns: undefined
+      }
+      reconcile_orphans: {
+        Args: { _worker_stale_seconds?: number }
+        Returns: {
+          offline_workers: number
+          recovered_jobs: number
         }[]
       }
       reject_approval: {
@@ -975,6 +1132,7 @@ export type Database = {
         Args: { _approval_id: string; _operator: string }
         Returns: undefined
       }
+      runtime_health_report: { Args: never; Returns: Json }
       sweep_stale_jobs: {
         Args: { _lease_seconds?: number }
         Returns: {
