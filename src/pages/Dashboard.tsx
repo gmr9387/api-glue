@@ -23,6 +23,7 @@ import { ApprovalQueue } from '@/components/mission/ApprovalQueue';
 import { ObservabilityPanel } from '@/components/mission/ObservabilityPanel';
 import { ControlPlanePanel } from '@/components/mission/ControlPlanePanel';
 import { RuntimeHealth } from '@/components/mission/RuntimeHealth';
+import { SecurityEventsFeed } from '@/components/mission/SecurityEventsFeed';
 
 const healthTone = (status: string) =>
   status === 'healthy' ? 'success'
@@ -123,7 +124,10 @@ export default function Dashboard() {
         <ApprovalQueue />
       </div>
 
-      <RuntimeHealth />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <RuntimeHealth />
+        <SecurityEventsFeed />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <LiveTelemetryPanel />

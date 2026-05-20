@@ -41,8 +41,9 @@ export const useApprovals = create<State>((set, get) => ({
     return () => { supabase.removeChannel(ch); };
   },
   decide: async (id, decision, reason) => {
+    // Operator identity is derived from the caller's JWT by the edge function.
     await supabase.functions.invoke("approval-decision", {
-      body: { approval_id: id, decision, operator: "operator", reason },
+      body: { approval_id: id, decision, reason },
     });
     await get().hydrate();
   },
