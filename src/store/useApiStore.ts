@@ -16,6 +16,8 @@ const SUPPORTED_ACTIONS: Record<string, string[]> = {
   openai: ['generateText', 'generateImage'],
   sendgrid: ['sendEmail'],
   twilio: ['sendMessage'],
+  slack: ['postMessage', 'createChannel'],
+  salesforce: ['createLead', 'updateOpportunity'],
 };
 
 export interface ConnectedService {
@@ -145,7 +147,9 @@ export const useApiStore = create<ApiState>((set, get) => ({
       id: r.runId,
       timestamp: new Date(r.timestamp),
       serviceAction: `${r.connector}.${r.workflowName}`,
-      status: r.status === 'succeeded' ? 'success' : r.status === 'failed' ? 'error' : 'pending',
+      status: (r.status === 'succeeded' || r.status === 'completed') ? 'success'
+        : (r.status === 'failed' || r.status === 'escalated') ? 'error'
+        : 'pending',
       duration: r.executionDurationMs,
       error: r.failureReason,
     }));

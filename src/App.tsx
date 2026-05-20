@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +11,7 @@ import { Topbar } from "@/components/shell/Topbar";
 import { SystemStatusBar } from "@/components/shell/SystemStatusBar";
 import { CommandPalette, useCommandPalette } from "@/components/shell/CommandPalette";
 import { AuthProvider } from "@/hooks/useAuth";
+import { useRuntimeStore } from "@/store/useRuntimeStore";
 import Dashboard from "./pages/Dashboard";
 import Connectors from "./pages/Connectors";
 import Playground from "./pages/Playground";
@@ -25,6 +27,13 @@ const queryClient = new QueryClient();
 
 function AppShell() {
   const { open, setOpen } = useCommandPalette();
+  const start = useRuntimeStore(s => s.start);
+  const stop = useRuntimeStore(s => s.stop);
+
+  useEffect(() => {
+    start();
+    return () => stop();
+  }, [start, stop]);
 
   return (
     <SidebarProvider>
