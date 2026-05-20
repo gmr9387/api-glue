@@ -81,8 +81,8 @@ export default function Platform() {
       <PageHeader
         title="Platform"
         description="Reusable templates, connector marketplace, onboarding, and deployment readiness."
-        icon={Boxes}
       />
+
 
       <Tabs defaultValue="templates" className="w-full">
         <TabsList className="grid grid-cols-5 max-w-3xl">
