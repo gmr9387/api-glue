@@ -42,3 +42,16 @@ verify_jwt = false
 [functions.workflow-publish]
 verify_jwt = false
 
+[functions.scale-monitor]
+verify_jwt = false
+
+[functions.load-harness]
+verify_jwt = false
+
+[functions.worker-health]
+verify_jwt = false
+
+[functions.otel-export]
+verify_jwt = false
+
+
