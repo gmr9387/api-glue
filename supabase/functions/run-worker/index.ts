@@ -288,6 +288,7 @@ async function processJob(sb: SupabaseClient, job: Job) {
 
     await sb.from("workflow_checkpoints").insert({
       run_id: job.run_id,
+      workflow_version_id: run.workflow_version_id ?? null,
       step_index: stepIndex,
       snapshot: {
         node_id: node.id,
@@ -298,9 +299,11 @@ async function processJob(sb: SupabaseClient, job: Job) {
         attempt: job.retry_attempt,
         idempotency_key: job.idempotency_key,
         correlation_id: run.correlation_id,
+        workflow_version_id: run.workflow_version_id ?? null,
         mock: result.mock,
       },
     });
+
 
     if (node.connector === "openai" && result.data) {
       const confidence = typeof result.data.confidence === "number"
