@@ -99,9 +99,15 @@ export function SystemStatusBar() {
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0">
-        <AlertTriangle className={cn('h-3 w-3', failedRuns > 0 ? 'text-danger' : '')} />
+        <Layers className="h-3 w-3" />
+        <span>queue <span className="text-foreground tabular-nums">{queueDepth}</span></span>
+      </div>
+
+      <div className="flex items-center gap-1.5 shrink-0">
+        <AlertTriangle className={cn('h-3 w-3', (failedRuns > 0 || slaAtRisk > 0) ? 'text-danger' : '')} />
         <span>
           <span className={cn('tabular-nums', failedRuns > 0 ? 'text-danger' : 'text-foreground')}>{failedRuns}</span> failed
+          {slaAtRisk > 0 && <span className="text-danger"> · {slaAtRisk} SLA risk</span>}
         </span>
       </div>
 
