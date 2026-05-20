@@ -3,12 +3,14 @@ import {
   Plug,
   Play,
   GitBranch,
+  Workflow,
   Sparkles,
   User,
   Settings,
   History,
   ShieldCheck,
 } from 'lucide-react';
+
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Sidebar,
