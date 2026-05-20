@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.tick-connectors]
 verify_jwt = false
+
+[functions.sla-sweeper]
+verify_jwt = false
+
+[functions.approval-decision]
+verify_jwt = false
+
+[functions.rollback-executor]
+verify_jwt = false
