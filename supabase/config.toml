@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.control-plane]
 verify_jwt = false
+
+[functions.runtime-validate]
+verify_jwt = false
