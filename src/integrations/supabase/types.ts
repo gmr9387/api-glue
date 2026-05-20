@@ -301,6 +301,45 @@ export type Database = {
         }
         Relationships: []
       }
+      security_events: {
+        Row: {
+          actor_user_id: string | null
+          category: string
+          details: Json
+          id: string
+          message: string | null
+          severity: string
+          subject_id: string | null
+          subject_type: string | null
+          tenant_id: string | null
+          ts: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          category: string
+          details?: Json
+          id?: string
+          message?: string | null
+          severity?: string
+          subject_id?: string | null
+          subject_type?: string | null
+          tenant_id?: string | null
+          ts?: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          category?: string
+          details?: Json
+          id?: string
+          message?: string | null
+          severity?: string
+          subject_id?: string | null
+          subject_type?: string | null
+          tenant_id?: string | null
+          ts?: string
+        }
+        Relationships: []
+      }
       sla_breaches: {
         Row: {
           budget_ms: number
@@ -426,6 +465,59 @@ export type Database = {
           value?: number
           window_seconds?: number
           window_start?: string
+        }
+        Relationships: []
+      }
+      tenant_members: {
+        Row: {
+          created_at: string
+          role: Database["public"]["Enums"]["operator_role"]
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          role?: Database["public"]["Enums"]["operator_role"]
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          role?: Database["public"]["Enums"]["operator_role"]
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          name?: string
+          slug?: string
         }
         Relationships: []
       }
@@ -599,6 +691,7 @@ export type Database = {
           graph: Json
           id: string
           name: string
+          tenant_id: string | null
           updated_at: string
           version: number
         }
@@ -607,6 +700,7 @@ export type Database = {
           graph?: Json
           id: string
           name: string
+          tenant_id?: string | null
           updated_at?: string
           version?: number
         }
@@ -615,6 +709,7 @@ export type Database = {
           graph?: Json
           id?: string
           name?: string
+          tenant_id?: string | null
           updated_at?: string
           version?: number
         }
@@ -630,6 +725,7 @@ export type Database = {
           moved_at: string
           payload: Json
           run_id: string
+          tenant_id: string | null
         }
         Insert: {
           attempts: number
@@ -640,6 +736,7 @@ export type Database = {
           moved_at?: string
           payload?: Json
           run_id: string
+          tenant_id?: string | null
         }
         Update: {
           attempts?: number
@@ -650,6 +747,7 @@ export type Database = {
           moved_at?: string
           payload?: Json
           run_id?: string
+          tenant_id?: string | null
         }
         Relationships: []
       }
@@ -1100,23 +1198,50 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      current_user_tenants: { Args: never; Returns: string[] }
       detect_sla_breaches: {
         Args: never
         Returns: {
           breached: number
         }[]
       }
-      drain_worker: { Args: { _worker_id: string }; Returns: undefined }
+      drain_worker:
+        | { Args: { _worker_id: string }; Returns: undefined }
+        | {
+            Args: { _operator_uid: string; _worker_id: string }
+            Returns: undefined
+          }
       expire_pending_approvals: {
         Args: never
         Returns: {
           expired: number
         }[]
       }
-      pause_partition: {
-        Args: { _partition_key: string; _paused?: boolean }
-        Returns: undefined
+      has_operator_role: {
+        Args: {
+          _required: Database["public"]["Enums"]["operator_role"]
+          _tenant_id: string
+          _uid: string
+        }
+        Returns: boolean
       }
+      has_tenant_access: {
+        Args: { _tenant_id: string; _uid: string }
+        Returns: boolean
+      }
+      pause_partition:
+        | {
+            Args: { _partition_key: string; _paused?: boolean }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _operator_uid: string
+              _partition_key: string
+              _paused: boolean
+            }
+            Returns: undefined
+          }
       reconcile_orphans: {
         Args: { _worker_stale_seconds?: number }
         Returns: {
@@ -1124,14 +1249,28 @@ export type Database = {
           recovered_jobs: number
         }[]
       }
-      reject_approval: {
-        Args: { _approval_id: string; _operator: string; _reason?: string }
-        Returns: undefined
-      }
-      resume_after_approval: {
-        Args: { _approval_id: string; _operator: string }
-        Returns: undefined
-      }
+      reject_approval:
+        | {
+            Args: { _approval_id: string; _operator: string; _reason?: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _approval_id: string
+              _operator_uid: string
+              _reason?: string
+            }
+            Returns: undefined
+          }
+      resume_after_approval:
+        | {
+            Args: { _approval_id: string; _operator: string }
+            Returns: undefined
+          }
+        | {
+            Args: { _approval_id: string; _operator_uid: string }
+            Returns: undefined
+          }
       runtime_health_report: { Args: never; Returns: Json }
       sweep_stale_jobs: {
         Args: { _lease_seconds?: number }
@@ -1141,7 +1280,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      operator_role: "admin" | "operator" | "observer" | "auditor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1268,6 +1407,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      operator_role: ["admin", "operator", "observer", "auditor"],
+    },
   },
 } as const
