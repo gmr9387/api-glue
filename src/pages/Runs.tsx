@@ -17,6 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ReplayTimeline } from '@/components/mission/ReplayTimeline';
 
 interface RunRow {
   id: string;
@@ -110,12 +111,13 @@ export default function Runs() {
                         <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${openId === r.runId ? 'rotate-180' : ''}`} />
                       </button>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="px-3 pb-3">
+                    <CollapsibleContent className="px-3 pb-3 space-y-3">
                       {r.failureReason && (
-                        <p className="mb-2 text-[11px] font-mono text-danger flex items-center gap-1.5 px-2 py-1.5 rounded bg-danger/5 border border-danger/20">
+                        <p className="text-[11px] font-mono text-danger flex items-center gap-1.5 px-2 py-1.5 rounded bg-danger/5 border border-danger/20">
                           <span className="font-semibold">FAILURE</span> · {r.failureReason}
                         </p>
                       )}
+                      <ReplayTimeline run={r} />
                       <div className="rounded border border-border bg-background/60 overflow-hidden">
                         <div className="px-2.5 py-1 border-b border-border bg-muted/40 text-[10px] font-mono uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                           <span>execution log</span>
@@ -124,8 +126,8 @@ export default function Runs() {
                         <ul className="divide-y divide-border/60">
                           {r.logs.map((line, i) => {
                             const isErr = /\b(error|fail|timeout|unauthorized|giving up|\b[45]\d{2}\b)/i.test(line);
-                            const isWarn = /\b(retry|backoff|degraded|warn)\b/i.test(line) && !isErr;
-                            const isOk = /\b(200|201|202|ok|accepted|succeeded)\b/i.test(line) && !isErr && !isWarn;
+                            const isWarn = /\b(retry|backoff|degraded|warn|escalat)\b/i.test(line) && !isErr;
+                            const isOk = /\b(200|201|202|ok|accepted|succeeded|approved)\b/i.test(line) && !isErr && !isWarn;
                             const sev =
                               isErr ? 'text-danger'
                               : isWarn ? 'text-warning'

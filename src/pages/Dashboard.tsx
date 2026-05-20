@@ -7,6 +7,12 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { MissionControlMetrics, ConnectorTelemetryGrid } from '@/components/mission/MissionControl';
+import { LiveTicker } from '@/components/mission/LiveTicker';
+import { IncidentFeed } from '@/components/mission/IncidentFeed';
+import { Heatmap } from '@/components/mission/Heatmap';
+import { DecisionWeaver } from '@/components/mission/DecisionWeaver';
+import { QueueGauge } from '@/components/mission/QueueGauge';
 
 const healthTone = (status: string) =>
   status === 'healthy' ? 'success'
@@ -69,6 +75,31 @@ export default function Dashboard() {
           <span><strong>Demo mode</strong> is on — workflows, runs, and connector health below are seeded fixtures from <code className="font-mono">src/lib/demoData.ts</code>.</span>
         </div>
       )}
+
+      {/* Mission Control: live runtime telemetry */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-base font-semibold text-foreground">Mission Control</h2>
+            <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">runtime · operational intelligence</p>
+          </div>
+          <span className="text-[10px] font-mono text-muted-foreground tabular-nums">simulation · live tick</span>
+        </div>
+        <MissionControlMetrics />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 space-y-4">
+            <Heatmap />
+            <ConnectorTelemetryGrid />
+          </div>
+          <div className="space-y-4">
+            <QueueGauge />
+            <IncidentFeed />
+            <LiveTicker height={260} />
+          </div>
+        </div>
+        <DecisionWeaver />
+      </section>
+
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {demoMode ? (

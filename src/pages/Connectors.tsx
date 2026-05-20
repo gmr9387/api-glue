@@ -1,9 +1,11 @@
 import { ConnectorCard, CONNECTORS } from '@/components/ConnectorCard';
 import { PageHeader } from '@/components/ui/page-header';
 import { useApiStore } from '@/store/useApiStore';
+import { useRuntimeStore } from '@/store/useRuntimeStore';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { Sparkles } from 'lucide-react';
+import { Sparkline } from '@/components/mission/Sparkline';
 
 const healthTone = (status: string): 'success' | 'warning' | 'info' | 'danger' =>
   status === 'healthy' ? 'success'
@@ -14,8 +16,9 @@ const healthTone = (status: string): 'success' | 'warning' | 'info' | 'danger' =
 export default function Connectors() {
   const connected = useApiStore(s => s.connectedServices);
   const demoMode = useApiStore(s => s.demoMode);
-  const connectorHealth = useApiStore(s => s.connectorHealth);
   const loadDemoOperations = useApiStore(s => s.loadDemoOperations);
+  // Always pull live runtime telemetry — keeps the table evolving even before demo mode.
+  const connectorHealth = useRuntimeStore(s => s.connectorHealth);
 
   return (
     <div className="px-6 lg:px-8 py-6 max-w-7xl mx-auto space-y-6">
@@ -36,7 +39,7 @@ export default function Connectors() {
         }
       />
 
-      {demoMode && connectorHealth.length > 0 && (
+      {connectorHealth.length > 0 && (
         <section className="panel p-5">
           <header className="flex items-center justify-between mb-3">
             <div>
@@ -52,6 +55,7 @@ export default function Connectors() {
                   <th className="py-2 pr-4">Connector</th>
                   <th className="py-2 pr-4">Status</th>
                   <th className="py-2 pr-4 text-right">Latency</th>
+                  <th className="py-2 pr-4 w-[120px]">Trend</th>
                   <th className="py-2 pr-4 text-right">Failure rate</th>
                   <th className="py-2 pr-4 text-right">Uptime</th>
                   <th className="py-2">Last successful execution</th>
@@ -81,6 +85,11 @@ export default function Connectors() {
                       </td>
                       <td className="py-2.5 pr-4 text-right font-mono text-xs text-muted-foreground tabular-nums">
                         {h.latencyMs != null ? `${h.latencyMs}ms` : '—'}
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        <div className="w-28">
+                          <Sparkline data={h.latencySeries} tone={t === 'success' ? 'success' : t === 'warning' ? 'warning' : t === 'info' ? 'info' : 'danger'} height={22} />
+                        </div>
                       </td>
                       <td className={`py-2.5 pr-4 text-right font-mono text-xs tabular-nums ${
                         h.failureRate > 0.5 ? 'text-danger' : h.failureRate > 0 ? 'text-warning' : 'text-muted-foreground'

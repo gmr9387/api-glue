@@ -1,37 +1,37 @@
 import { useApiStore } from '@/store/useApiStore';
-import { Activity, GitBranch, AlertTriangle, Plug, Clock } from 'lucide-react';
+import { useRuntimeStore } from '@/store/useRuntimeStore';
+import { Activity, GitBranch, AlertTriangle, Plug, Clock, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
- * Slim operational status bar — sits between the topbar and the page content.
- * Shows: system pulse, active workflows, connector health summary, failed runs,
- * last execution timestamp. Designed to make the app feel continuously alive.
+ * Slim live operational status bar.
+ * Reads runtime simulation store so values evolve every ~2s.
  */
 export function SystemStatusBar() {
   const demoMode = useApiStore(s => s.demoMode);
   const connectedServices = useApiStore(s => s.connectedServices);
-  const connectorHealth = useApiStore(s => s.connectorHealth);
-  const runs = useApiStore(s => s.runs);
-  const logs = useApiStore(s => s.logs);
   const workflows = useApiStore(s => s.workflows);
   const demoWorkflows = useApiStore(s => s.demoWorkflows);
+  const logs = useApiStore(s => s.logs);
+  const runs = useApiStore(s => s.runs);
+
+  const connectorHealth = useRuntimeStore(s => s.connectorHealth);
+  const queueDepth = useRuntimeStore(s => s.queueDepth);
+  const activeRuns = useRuntimeStore(s => s.activeRuns);
+  const slaAtRisk = useRuntimeStore(s => s.slaAtRisk);
 
   const activeWorkflows = demoMode ? demoWorkflows.length : workflows.length;
-  const runningWorkflows = workflows.filter(w => w.status === 'running').length;
+  const runningWorkflows = workflows.filter(w => w.status === 'running').length || activeRuns;
 
   const healthyCount = connectorHealth.filter(h => h.status === 'healthy').length;
   const degradedCount = connectorHealth.filter(h => h.status === 'degraded' || h.status === 'retrying').length;
   const downCount = connectorHealth.filter(h => h.status === 'down').length;
 
   const failedRuns = demoMode
-    ? runs.filter(r => r.status === 'failed').length
+    ? runs.filter(r => r.status === 'failed' || r.status === 'escalated').length
     : logs.filter(l => l.status === 'error').length;
 
-  const lastTs = demoMode
-    ? runs[0]?.timestamp
-    : logs[0]?.timestamp instanceof Date
-      ? logs[0].timestamp.toISOString()
-      : null;
+  const lastTs = logs[0]?.timestamp instanceof Date ? logs[0].timestamp.toISOString() : runs[0]?.timestamp ?? null;
 
   // Overall system state — drives the left-edge pulse dot
   const systemTone: 'success' | 'warning' | 'danger' | 'neutral' =
@@ -99,9 +99,15 @@ export function SystemStatusBar() {
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0">
-        <AlertTriangle className={cn('h-3 w-3', failedRuns > 0 ? 'text-danger' : '')} />
+        <Layers className="h-3 w-3" />
+        <span>queue <span className="text-foreground tabular-nums">{queueDepth}</span></span>
+      </div>
+
+      <div className="flex items-center gap-1.5 shrink-0">
+        <AlertTriangle className={cn('h-3 w-3', (failedRuns > 0 || slaAtRisk > 0) ? 'text-danger' : '')} />
         <span>
           <span className={cn('tabular-nums', failedRuns > 0 ? 'text-danger' : 'text-foreground')}>{failedRuns}</span> failed
+          {slaAtRisk > 0 && <span className="text-danger"> · {slaAtRisk} SLA risk</span>}
         </span>
       </div>
 
