@@ -33,8 +33,14 @@ Deno.serve(async (req) => {
 
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+  // Heartbeat: announce this worker is alive for stale-job sweeper.
+  await sb.from("worker_heartbeats").upsert({
+    worker_id: WORKER_ID, last_seen_at: new Date().toISOString(), status: "alive",
+  });
+
   let processed = 0;
   const touchedRuns = new Set<string>();
+
 
   for (let i = 0; i < BATCH; i++) {
     const { data: job, error: claimErr } = await sb.rpc("claim_next_job", { _worker_id: WORKER_ID });
@@ -121,11 +127,68 @@ async function processJob(sb: SupabaseClient, job: Job) {
 
   const stepIndex = graph.nodes.findIndex((n) => n.id === node.id);
 
-  // Mark job + step running
+  // ── Approval gate ─────────────────────────────────────────
+  // If this node requires approval AND no approved record exists yet,
+  // create a pending approval and pause the job. The operator decision
+  // endpoint will re-queue the job.
+  if (node.approvalRequired) {
+    const { data: existingApproval } = await sb
+      .from("workflow_approvals")
+      .select("id,state")
+      .eq("job_id", job.id)
+      .maybeSingle();
+
+    if (!existingApproval) {
+      const expires = new Date(Date.now() + 30 * 60_000).toISOString();
+      const { data: appr } = await sb.from("workflow_approvals").insert({
+        run_id: job.run_id,
+        job_id: job.id,
+        dag_node_id: node.id,
+        state: "pending",
+        expires_at: expires,
+        requested_at: new Date().toISOString(),
+      }).select().single();
+
+      await sb.from("workflow_jobs").update({
+        state: "delayed",
+        backoff_until: expires,
+        scheduled_at: expires,
+        worker_id: null,
+        started_at: null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", job.id);
+
+      await sb.from("workflow_runs").update({ state: "waiting_for_approval" }).eq("id", job.run_id);
+
+      await emit(sb, job.run_id, null, "approval.requested", "warn",
+        `⏸ Awaiting approval: ${node.name}`,
+        { approval_id: appr?.id, node_id: node.id, expires_at: expires });
+
+      await sb.from("runtime_audit_log").insert({
+        actor: "worker", action: "approval.request",
+        subject_type: "approval", subject_id: appr?.id ?? null,
+        details: { run_id: job.run_id, job_id: job.id, node_id: node.id },
+      });
+      return;
+    } else if (existingApproval.state === "rejected" || existingApproval.state === "expired") {
+      // Should already have been dead-lettered, but be defensive.
+      await sb.from("workflow_jobs").update({
+        state: "dead_letter", error: `approval ${existingApproval.state}`,
+        completed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      }).eq("id", job.id);
+      return;
+    }
+    // approved → fall through and execute
+  }
+
+  // Mark job + step running, claim a 120s lease.
   await sb.from("workflow_jobs").update({
     state: "running",
+    heartbeat_at: new Date().toISOString(),
+    lease_expires_at: new Date(Date.now() + 120_000).toISOString(),
     updated_at: new Date().toISOString(),
   }).eq("id", job.id);
+
 
   const startedAt = new Date().toISOString();
   let step_id: string | null = existing?.id ?? null;

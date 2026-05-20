@@ -19,6 +19,8 @@ import { ReplayConsole } from '@/components/mission/ReplayConsole';
 import { OrchestrationGraph } from '@/components/mission/OrchestrationGraph';
 import { GovernancePanel } from '@/components/mission/GovernancePanel';
 import { ConnectorMatrix } from '@/components/mission/ConnectorMatrix';
+import { ApprovalQueue } from '@/components/mission/ApprovalQueue';
+import { ObservabilityPanel } from '@/components/mission/ObservabilityPanel';
 
 const healthTone = (status: string) =>
   status === 'healthy' ? 'success'
@@ -111,6 +113,11 @@ export default function Dashboard() {
       <OrchestrationGraph />
 
       <ConnectorMatrix />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ObservabilityPanel />
+        <ApprovalQueue />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <LiveTelemetryPanel />
