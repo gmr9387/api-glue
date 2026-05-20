@@ -62,6 +62,17 @@ Deno.serve(async (req) => {
     await finalizeRunIfDone(sb, runId);
   }
 
+  // If we hit the batch limit, kick a follow-on worker so the queue keeps draining.
+  if (processed >= BATCH) {
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    fetch(`${url}/functions/v1/run-worker`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: "{}",
+    }).catch(() => {});
+  }
+
   return new Response(JSON.stringify({ worker_id: WORKER_ID, processed }), {
     status: 200,
     headers: { ...cors, "Content-Type": "application/json" },

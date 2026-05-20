@@ -1,1 +1,13 @@
 project_id = "cqjdncuaxffowqnujaea"
+
+[functions.run-worker]
+verify_jwt = false
+
+[functions.execute-workflow]
+verify_jwt = false
+
+[functions.replay-workflow]
+verify_jwt = false
+
+[functions.tick-connectors]
+verify_jwt = false
