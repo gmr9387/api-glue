@@ -42,8 +42,8 @@ export default function WorkflowStudio() {
       <PageHeader
         title="Workflow Studio"
         description="Author, validate, and version operational DAGs. Published versions are immutable; in-flight runs stay pinned to their original topology."
-        icon={Workflow}
       />
+
 
       <div className="grid grid-cols-12 gap-4">
         <Card className="col-span-3">
