@@ -1,0 +1,1 @@
+ALTER TABLE public.workflow_runs ALTER COLUMN user_id DROP NOT NULL;

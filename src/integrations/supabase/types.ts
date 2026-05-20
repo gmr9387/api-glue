@@ -523,7 +523,7 @@ export type Database = {
           status: string
           steps: Json
           tenant_id: string | null
-          user_id: string
+          user_id: string | null
           workflow_id: string | null
           workflow_name: string
         }
@@ -546,7 +546,7 @@ export type Database = {
           status?: string
           steps?: Json
           tenant_id?: string | null
-          user_id: string
+          user_id?: string | null
           workflow_id?: string | null
           workflow_name: string
         }
@@ -569,7 +569,7 @@ export type Database = {
           status?: string
           steps?: Json
           tenant_id?: string | null
-          user_id?: string
+          user_id?: string | null
           workflow_id?: string | null
           workflow_name?: string
         }
