@@ -124,7 +124,10 @@ export default function Dashboard() {
         <ApprovalQueue />
       </div>
 
-      <RuntimeHealth />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <RuntimeHealth />
+        <SecurityEventsFeed />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <LiveTelemetryPanel />
