@@ -133,6 +133,95 @@ export type Database = {
         }
         Relationships: []
       }
+      connector_capabilities: {
+        Row: {
+          connector_id: string
+          description: string | null
+          id: string
+          input_schema: Json
+          kind: string
+          name: string
+          output_schema: Json
+          rate_limit_per_min: number | null
+          retryable: boolean
+        }
+        Insert: {
+          connector_id: string
+          description?: string | null
+          id?: string
+          input_schema?: Json
+          kind: string
+          name: string
+          output_schema?: Json
+          rate_limit_per_min?: number | null
+          retryable?: boolean
+        }
+        Update: {
+          connector_id?: string
+          description?: string | null
+          id?: string
+          input_schema?: Json
+          kind?: string
+          name?: string
+          output_schema?: Json
+          rate_limit_per_min?: number | null
+          retryable?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connector_capabilities_connector_id_fkey"
+            columns: ["connector_id"]
+            isOneToOne: false
+            referencedRelation: "connector_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      connector_catalog: {
+        Row: {
+          auth_model: string
+          category: string | null
+          created_at: string
+          description: string | null
+          featured: boolean
+          homepage: string | null
+          icon: string | null
+          id: string
+          key: string
+          name: string
+          publisher: string
+          state: string
+        }
+        Insert: {
+          auth_model?: string
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          featured?: boolean
+          homepage?: string | null
+          icon?: string | null
+          id?: string
+          key: string
+          name: string
+          publisher?: string
+          state?: string
+        }
+        Update: {
+          auth_model?: string
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          featured?: boolean
+          homepage?: string | null
+          icon?: string | null
+          id?: string
+          key?: string
+          name?: string
+          publisher?: string
+          state?: string
+        }
+        Relationships: []
+      }
       connector_circuit_breakers: {
         Row: {
           connector: string
@@ -177,6 +266,54 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      connector_installations: {
+        Row: {
+          config: Json
+          connector_id: string
+          connector_version_id: string | null
+          enabled: boolean
+          id: string
+          installed_at: string
+          installed_by: string | null
+          tenant_id: string
+        }
+        Insert: {
+          config?: Json
+          connector_id: string
+          connector_version_id?: string | null
+          enabled?: boolean
+          id?: string
+          installed_at?: string
+          installed_by?: string | null
+          tenant_id: string
+        }
+        Update: {
+          config?: Json
+          connector_id?: string
+          connector_version_id?: string | null
+          enabled?: boolean
+          id?: string
+          installed_at?: string
+          installed_by?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connector_installations_connector_id_fkey"
+            columns: ["connector_id"]
+            isOneToOne: false
+            referencedRelation: "connector_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connector_installations_connector_version_id_fkey"
+            columns: ["connector_version_id"]
+            isOneToOne: false
+            referencedRelation: "connector_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       connector_schemas: {
         Row: {
@@ -256,6 +393,41 @@ export type Database = {
         }
         Relationships: []
       }
+      connector_versions: {
+        Row: {
+          connector_id: string
+          id: string
+          release_notes: string | null
+          released_at: string
+          state: string
+          version: string
+        }
+        Insert: {
+          connector_id: string
+          id?: string
+          release_notes?: string | null
+          released_at?: string
+          state?: string
+          version: string
+        }
+        Update: {
+          connector_id?: string
+          id?: string
+          release_notes?: string | null
+          released_at?: string
+          state?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connector_versions_connector_id_fkey"
+            columns: ["connector_id"]
+            isOneToOne: false
+            referencedRelation: "connector_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dead_letter_recovery: {
         Row: {
           attempts: number
@@ -294,6 +466,118 @@ export type Database = {
           tenant_id?: string | null
         }
         Relationships: []
+      }
+      deployment_profiles: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          environment: string
+          id: string
+          name: string
+          tenant_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          environment: string
+          id?: string
+          name: string
+          tenant_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          environment?: string
+          id?: string
+          name?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      deployment_validations: {
+        Row: {
+          checks: Json
+          failed: number
+          id: string
+          passed: number
+          profile_id: string | null
+          ran_at: string
+          ran_by: string | null
+          state: string
+          tenant_id: string
+          warnings: number
+        }
+        Insert: {
+          checks?: Json
+          failed?: number
+          id?: string
+          passed?: number
+          profile_id?: string | null
+          ran_at?: string
+          ran_by?: string | null
+          state?: string
+          tenant_id: string
+          warnings?: number
+        }
+        Update: {
+          checks?: Json
+          failed?: number
+          id?: string
+          passed?: number
+          profile_id?: string | null
+          ran_at?: string
+          ran_by?: string | null
+          state?: string
+          tenant_id?: string
+          warnings?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployment_validations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "deployment_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      environment_configs: {
+        Row: {
+          id: string
+          key: string
+          profile_id: string
+          secret_ref: string | null
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          profile_id: string
+          secret_ref?: string | null
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          profile_id?: string
+          secret_ref?: string | null
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "environment_configs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "deployment_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       governance_policies: {
         Row: {
@@ -423,6 +707,154 @@ export type Database = {
           tenant_id?: string
         }
         Relationships: []
+      }
+      onboarding_progress: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          detail: Json
+          id: string
+          state: string
+          step_key: string
+          tenant_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          detail?: Json
+          id?: string
+          state?: string
+          step_key: string
+          tenant_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          detail?: Json
+          id?: string
+          state?: string
+          step_key?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_progress_step_key_fkey"
+            columns: ["step_key"]
+            isOneToOne: false
+            referencedRelation: "onboarding_steps"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      onboarding_steps: {
+        Row: {
+          category: string
+          description: string | null
+          id: string
+          key: string
+          required: boolean
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          category?: string
+          description?: string | null
+          id?: string
+          key: string
+          required?: boolean
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          category?: string
+          description?: string | null
+          id?: string
+          key?: string
+          required?: boolean
+          sort_order?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      operator_bookmarks: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          label: string | null
+          note: string | null
+          ref_id: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          label?: string | null
+          note?: string | null
+          ref_id: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string | null
+          note?: string | null
+          ref_id?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pack_imports: {
+        Row: {
+          created_at: string
+          id: string
+          imported_at: string | null
+          imported_by: string | null
+          manifest: Json
+          pack_id: string | null
+          source: string
+          state: string
+          tenant_id: string
+          validation_report: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          imported_at?: string | null
+          imported_by?: string | null
+          manifest?: Json
+          pack_id?: string | null
+          source?: string
+          state?: string
+          tenant_id: string
+          validation_report?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          imported_at?: string | null
+          imported_by?: string | null
+          manifest?: Json
+          pack_id?: string | null
+          source?: string
+          state?: string
+          tenant_id?: string
+          validation_report?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pack_imports_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_packs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -631,6 +1063,39 @@ export type Database = {
           name?: string
           source_event_type?: string
           tenant_id?: string
+        }
+        Relationships: []
+      }
+      saved_dashboards: {
+        Row: {
+          created_at: string
+          id: string
+          layout: Json
+          name: string
+          owner_user_id: string
+          shared: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          layout?: Json
+          name: string
+          owner_user_id: string
+          shared?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          layout?: Json
+          name?: string
+          owner_user_id?: string
+          shared?: boolean
+          tenant_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -881,6 +1346,128 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      template_categories: {
+        Row: {
+          description: string | null
+          icon: string | null
+          id: string
+          key: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      template_installs: {
+        Row: {
+          id: string
+          installed_at: string
+          installed_by: string | null
+          state: string
+          template_id: string
+          template_version_id: string
+          tenant_id: string
+          workflow_definition_id: string | null
+        }
+        Insert: {
+          id?: string
+          installed_at?: string
+          installed_by?: string | null
+          state?: string
+          template_id: string
+          template_version_id: string
+          tenant_id: string
+          workflow_definition_id?: string | null
+        }
+        Update: {
+          id?: string
+          installed_at?: string
+          installed_by?: string | null
+          state?: string
+          template_id?: string
+          template_version_id?: string
+          tenant_id?: string
+          workflow_definition_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_installs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_installs_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_versions: {
+        Row: {
+          changelog: string | null
+          created_at: string
+          governance_policies: Json
+          graph: Json
+          id: string
+          published_at: string | null
+          required_connectors: string[]
+          state: string
+          template_id: string
+          version: number
+        }
+        Insert: {
+          changelog?: string | null
+          created_at?: string
+          governance_policies?: Json
+          graph?: Json
+          id?: string
+          published_at?: string | null
+          required_connectors?: string[]
+          state?: string
+          template_id: string
+          version: number
+        }
+        Update: {
+          changelog?: string | null
+          created_at?: string
+          governance_policies?: Json
+          graph?: Json
+          id?: string
+          published_at?: string | null
+          required_connectors?: string[]
+          state?: string
+          template_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenant_members: {
         Row: {
@@ -1745,6 +2332,45 @@ export type Database = {
           },
         ]
       }
+      workflow_packs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          key: string
+          manifest: Json
+          name: string
+          required_connectors: string[]
+          tenant_id: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          manifest?: Json
+          name: string
+          required_connectors?: string[]
+          tenant_id?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          manifest?: Json
+          name?: string
+          required_connectors?: string[]
+          tenant_id?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       workflow_published_versions: {
         Row: {
           definition_id: string
@@ -2044,6 +2670,56 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workflow_runs"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_templates: {
+        Row: {
+          category_key: string | null
+          created_at: string
+          featured: boolean
+          id: string
+          install_count: number
+          key: string
+          name: string
+          publisher: string
+          state: string
+          summary: string | null
+          tags: string[]
+        }
+        Insert: {
+          category_key?: string | null
+          created_at?: string
+          featured?: boolean
+          id?: string
+          install_count?: number
+          key: string
+          name: string
+          publisher?: string
+          state?: string
+          summary?: string | null
+          tags?: string[]
+        }
+        Update: {
+          category_key?: string | null
+          created_at?: string
+          featured?: boolean
+          id?: string
+          install_count?: number
+          key?: string
+          name?: string
+          publisher?: string
+          state?: string
+          summary?: string | null
+          tags?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_templates_category_key_fkey"
+            columns: ["category_key"]
+            isOneToOne: false
+            referencedRelation: "template_categories"
+            referencedColumns: ["key"]
           },
         ]
       }
