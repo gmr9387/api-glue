@@ -7,6 +7,7 @@ import {
   User,
   Settings,
   History,
+  ShieldCheck,
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
@@ -40,6 +41,7 @@ const sections = [
       { title: 'Workflows', url: '/workflows', icon: GitBranch },
       { title: 'AI Builder', url: '/ai-builder', icon: Sparkles },
       { title: 'Runs', url: '/runs', icon: History },
+      { title: 'Governance', url: '/governance', icon: ShieldCheck },
     ],
   },
   {
