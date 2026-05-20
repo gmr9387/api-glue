@@ -13,6 +13,7 @@ import { IncidentFeed } from '@/components/mission/IncidentFeed';
 import { Heatmap } from '@/components/mission/Heatmap';
 import { DecisionWeaver } from '@/components/mission/DecisionWeaver';
 import { QueueGauge } from '@/components/mission/QueueGauge';
+import { LiveTelemetryPanel } from '@/components/mission/LiveTelemetryPanel';
 
 const healthTone = (status: string) =>
   status === 'healthy' ? 'success'
@@ -99,6 +100,9 @@ export default function Dashboard() {
         </div>
         <DecisionWeaver />
       </section>
+
+      <LiveTelemetryPanel />
+
 
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

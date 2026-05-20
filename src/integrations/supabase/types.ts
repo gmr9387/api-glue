@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_decision_trace: {
+        Row: {
+          confidence: number | null
+          decision: string | null
+          escalated: boolean
+          id: string
+          model: string | null
+          prompt: string | null
+          reasoning: string | null
+          risk: string | null
+          run_id: string | null
+          ts: string
+        }
+        Insert: {
+          confidence?: number | null
+          decision?: string | null
+          escalated?: boolean
+          id?: string
+          model?: string | null
+          prompt?: string | null
+          reasoning?: string | null
+          risk?: string | null
+          run_id?: string | null
+          ts?: string
+        }
+        Update: {
+          confidence?: number | null
+          decision?: string | null
+          escalated?: boolean
+          id?: string
+          model?: string | null
+          prompt?: string | null
+          reasoning?: string | null
+          risk?: string | null
+          run_id?: string | null
+          ts?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_decision_trace_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_requests: {
         Row: {
           action: string
@@ -113,15 +160,184 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_approvals: {
+        Row: {
+          decided_at: string | null
+          decided_by: string | null
+          decision: string | null
+          id: string
+          requested_at: string
+          run_id: string
+          step_id: string | null
+        }
+        Insert: {
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          id?: string
+          requested_at?: string
+          run_id: string
+          step_id?: string | null
+        }
+        Update: {
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          id?: string
+          requested_at?: string
+          run_id?: string
+          step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_approvals_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_approvals_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_step_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_checkpoints: {
+        Row: {
+          id: string
+          run_id: string
+          snapshot: Json
+          step_index: number
+          ts: string
+        }
+        Insert: {
+          id?: string
+          run_id: string
+          snapshot?: Json
+          step_index: number
+          ts?: string
+        }
+        Update: {
+          id?: string
+          run_id?: string
+          snapshot?: Json
+          step_index?: number
+          ts?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_checkpoints_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_events: {
+        Row: {
+          data: Json
+          id: string
+          message: string | null
+          run_id: string | null
+          severity: string
+          source: string | null
+          step_id: string | null
+          ts: string
+          type: string
+        }
+        Insert: {
+          data?: Json
+          id?: string
+          message?: string | null
+          run_id?: string | null
+          severity?: string
+          source?: string | null
+          step_id?: string | null
+          ts?: string
+          type: string
+        }
+        Update: {
+          data?: Json
+          id?: string
+          message?: string | null
+          run_id?: string | null
+          severity?: string
+          source?: string | null
+          step_id?: string | null
+          ts?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_events_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_step_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_incidents: {
+        Row: {
+          closed_at: string | null
+          id: string
+          opened_at: string
+          run_id: string | null
+          severity: string
+          summary: string
+        }
+        Insert: {
+          closed_at?: string | null
+          id?: string
+          opened_at?: string
+          run_id?: string | null
+          severity?: string
+          summary: string
+        }
+        Update: {
+          closed_at?: string | null
+          id?: string
+          opened_at?: string
+          run_id?: string | null
+          severity?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_incidents_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_runs: {
         Row: {
           context: Json
+          correlation_id: string | null
           created_at: string
           duration_ms: number | null
+          ended_at: string | null
           error: string | null
           finished_at: string | null
           id: string
+          payload: Json
+          result: Json | null
+          retry_count: number
           started_at: string
+          state: string
           status: string
           steps: Json
           user_id: string
@@ -130,12 +346,18 @@ export type Database = {
         }
         Insert: {
           context?: Json
+          correlation_id?: string | null
           created_at?: string
           duration_ms?: number | null
+          ended_at?: string | null
           error?: string | null
           finished_at?: string | null
           id?: string
+          payload?: Json
+          result?: Json | null
+          retry_count?: number
           started_at?: string
+          state?: string
           status?: string
           steps?: Json
           user_id: string
@@ -144,12 +366,18 @@ export type Database = {
         }
         Update: {
           context?: Json
+          correlation_id?: string | null
           created_at?: string
           duration_ms?: number | null
+          ended_at?: string | null
           error?: string | null
           finished_at?: string | null
           id?: string
+          payload?: Json
+          result?: Json | null
+          retry_count?: number
           started_at?: string
+          state?: string
           status?: string
           steps?: Json
           user_id?: string
@@ -157,6 +385,65 @@ export type Database = {
           workflow_name?: string
         }
         Relationships: []
+      }
+      workflow_step_runs: {
+        Row: {
+          connector: string | null
+          created_at: string
+          duration_ms: number | null
+          ended_at: string | null
+          error: string | null
+          id: string
+          name: string
+          payload: Json
+          result: Json | null
+          retry_count: number
+          run_id: string
+          started_at: string | null
+          state: string
+          step_index: number
+        }
+        Insert: {
+          connector?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          ended_at?: string | null
+          error?: string | null
+          id?: string
+          name: string
+          payload?: Json
+          result?: Json | null
+          retry_count?: number
+          run_id: string
+          started_at?: string | null
+          state?: string
+          step_index: number
+        }
+        Update: {
+          connector?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          ended_at?: string | null
+          error?: string | null
+          id?: string
+          name?: string
+          payload?: Json
+          result?: Json | null
+          retry_count?: number
+          run_id?: string
+          started_at?: string | null
+          state?: string
+          step_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_step_runs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
