@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
       status: 202, headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
+    const message = e instanceof Error ? e.message : (typeof e === "object" ? JSON.stringify(e) : String(e));
     console.error("[execute-workflow] error", message);
     return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...cors, "Content-Type": "application/json" },
