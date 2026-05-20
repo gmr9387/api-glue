@@ -38,3 +38,7 @@ verify_jwt = false
 
 [functions.event-trigger-router]
 verify_jwt = false
+
+[functions.workflow-publish]
+verify_jwt = false
+
