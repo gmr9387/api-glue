@@ -7,6 +7,12 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { MissionControlMetrics, ConnectorTelemetryGrid } from '@/components/mission/MissionControl';
+import { LiveTicker } from '@/components/mission/LiveTicker';
+import { IncidentFeed } from '@/components/mission/IncidentFeed';
+import { Heatmap } from '@/components/mission/Heatmap';
+import { DecisionWeaver } from '@/components/mission/DecisionWeaver';
+import { QueueGauge } from '@/components/mission/QueueGauge';
 
 const healthTone = (status: string) =>
   status === 'healthy' ? 'success'
