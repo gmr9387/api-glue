@@ -21,6 +21,7 @@ import { GovernancePanel } from '@/components/mission/GovernancePanel';
 import { ConnectorMatrix } from '@/components/mission/ConnectorMatrix';
 import { ApprovalQueue } from '@/components/mission/ApprovalQueue';
 import { ObservabilityPanel } from '@/components/mission/ObservabilityPanel';
+import { ControlPlanePanel } from '@/components/mission/ControlPlanePanel';
 
 const healthTone = (status: string) =>
   status === 'healthy' ? 'success'
