@@ -1,6 +1,8 @@
-// Operator approval decision endpoint.
-// POST { approval_id, decision: 'approve'|'reject', operator, reason? }
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+// Operator approval decision — identity-bound.
+// POST { approval_id, decision: 'approve'|'reject', reason? }
+// The acting operator is derived from the JWT, not a body param.
+
+import { requireUser, serviceClient, logSecurity } from "../_shared/auth.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -9,19 +11,49 @@ const cors = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+  const auth = await requireUser(req);
+  if (!auth.ok) {
+    return new Response(JSON.stringify({ error: auth.error }), {
+      status: auth.status,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
+  const operator_uid = auth.ctx.userId;
+  const sb = serviceClient();
 
   try {
     const body = await req.json();
-    const { approval_id, decision, operator = "operator", reason } = body;
+    const { approval_id, decision, reason } = body;
     if (!approval_id || !["approve", "reject"].includes(decision)) {
       return new Response(JSON.stringify({ error: "approval_id and decision required" }), {
         status: 400, headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
+    const rpcName = decision === "approve" ? "resume_after_approval" : "reject_approval";
+    const args: Record<string, unknown> =
+      decision === "approve"
+        ? { _approval_id: approval_id, _operator_uid: operator_uid }
+        : { _approval_id: approval_id, _operator_uid: operator_uid, _reason: reason ?? null };
+
+    const { error } = await sb.rpc(rpcName, args);
+    if (error) {
+      await logSecurity({
+        actor_user_id: operator_uid,
+        category: "authz.denied",
+        severity: "warn",
+        subject_type: "approval",
+        subject_id: approval_id,
+        message: `approval ${decision} rejected by RLS/role check`,
+        details: { error: error.message },
+      });
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 403, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+
     if (decision === "approve") {
-      await sb.rpc("resume_after_approval", { _approval_id: approval_id, _operator: operator });
       // kick the worker so the released job is drained immediately
       const url = Deno.env.get("SUPABASE_URL")!;
       const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -30,8 +62,6 @@ Deno.serve(async (req) => {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
         body: "{}",
       }).catch(() => {});
-    } else {
-      await sb.rpc("reject_approval", { _approval_id: approval_id, _operator: operator, _reason: reason ?? null });
     }
 
     return new Response(JSON.stringify({ ok: true, decision }), {

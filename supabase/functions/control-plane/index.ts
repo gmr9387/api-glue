@@ -1,27 +1,37 @@
-// Operational control plane.
-// POST { action, ... } where action ∈
-//   - "drain_worker"      { worker_id }
-//   - "pause_partition"   { partition_key }
-//   - "resume_partition"  { partition_key }
-//   - "reconcile"         {}
-//   - "archive_events"    { older_than_minutes? }
-//   - "aggregate"         {}
-//   - "health"            {}  → returns runtime_health_report()
-//   - "replay_dead_letter"{ job_id }
-//   - "throttle_connector"{ connector, max_concurrency }
-//
-// Every action is recorded in runtime_audit_log via the underlying RPCs.
+// Operational control plane — identity-bound.
+// All actions require an authenticated caller; admin-only actions are gated
+// by SQL functions that validate tenant_members.role = 'admin'.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requireUser, serviceClient, logSecurity } from "../_shared/auth.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const j = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
+
+function kickWorker() {
+  const url = Deno.env.get("SUPABASE_URL")!;
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  fetch(`${url}/functions/v1/run-worker`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: "{}",
+  }).catch(() => {});
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+  const auth = await requireUser(req);
+  if (!auth.ok) return j({ error: auth.error }, auth.status);
+  const operator_uid = auth.ctx.userId;
+  const sb = serviceClient();
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -31,21 +41,33 @@ Deno.serve(async (req) => {
     switch (action) {
       case "drain_worker": {
         if (!body.worker_id) return j({ error: "worker_id required" }, 400);
-        await sb.rpc("drain_worker", { _worker_id: body.worker_id });
+        const { error } = await sb.rpc("drain_worker", {
+          _worker_id: body.worker_id,
+          _operator_uid: operator_uid,
+        });
+        if (error) return j({ error: error.message }, 403);
         return j({ ok: true });
       }
-      case "pause_partition": {
-        if (!body.partition_key) return j({ error: "partition_key required" }, 400);
-        await sb.rpc("pause_partition", { _partition_key: body.partition_key, _paused: true });
-        return j({ ok: true });
-      }
+      case "pause_partition":
       case "resume_partition": {
         if (!body.partition_key) return j({ error: "partition_key required" }, 400);
-        await sb.rpc("pause_partition", { _partition_key: body.partition_key, _paused: false });
+        const { error } = await sb.rpc("pause_partition", {
+          _partition_key: body.partition_key,
+          _paused: action === "pause_partition",
+          _operator_uid: operator_uid,
+        });
+        if (error) return j({ error: error.message }, 403);
         return j({ ok: true });
       }
       case "reconcile": {
         const { data } = await sb.rpc("reconcile_orphans", { _worker_stale_seconds: 180 });
+        await logSecurity({
+          actor_user_id: operator_uid,
+          category: "operator.action",
+          subject_type: "runtime",
+          message: "reconcile_orphans invoked",
+          details: { result: data?.[0] ?? null },
+        });
         return j({ ok: true, result: data?.[0] ?? null });
       }
       case "archive_events": {
@@ -66,13 +88,39 @@ Deno.serve(async (req) => {
         if (!connector || typeof max_concurrency !== "number") {
           return j({ error: "connector + max_concurrency required" }, 400);
         }
+        // Admin-only — check via tenant_members.
+        const { data: isAdmin } = await sb
+          .from("tenant_members")
+          .select("user_id")
+          .eq("user_id", operator_uid)
+          .eq("role", "admin")
+          .maybeSingle();
+        if (!isAdmin) {
+          await logSecurity({
+            actor_user_id: operator_uid,
+            category: "authz.denied",
+            severity: "warn",
+            subject_type: "connector",
+            subject_id: connector,
+            message: "throttle_connector denied: admin required",
+          });
+          return j({ error: "admin role required" }, 403);
+        }
         const key = `connector:${connector}`;
-        await sb.from("queue_partitions").upsert({
-          partition_key: key, max_concurrency, description: `Connector throttle for ${connector}`,
-        }, { onConflict: "partition_key" });
+        await sb.from("queue_partitions").upsert(
+          { partition_key: key, max_concurrency, description: `Connector throttle for ${connector}` },
+          { onConflict: "partition_key" },
+        );
         await sb.from("runtime_audit_log").insert({
-          actor: "operator", action: "connector.throttle",
-          subject_type: "connector", subject_id: connector,
+          actor: operator_uid, action: "connector.throttle",
+          subject_type: "connector", subject_id: connector, details: { max_concurrency },
+        });
+        await logSecurity({
+          actor_user_id: operator_uid,
+          category: "operator.action",
+          subject_type: "connector",
+          subject_id: connector,
+          message: "connector throttled",
           details: { max_concurrency },
         });
         return j({ ok: true });
@@ -82,6 +130,24 @@ Deno.serve(async (req) => {
         if (!job_id) return j({ error: "job_id required" }, 400);
         const { data: job } = await sb.from("workflow_jobs").select("*").eq("id", job_id).single();
         if (!job) return j({ error: "job not found" }, 404);
+
+        // Tenant authorization: caller must be operator on the job's tenant.
+        const { data: allowed } = await sb.rpc("has_operator_role", {
+          _uid: operator_uid, _tenant_id: job.tenant_id, _required: "operator",
+        });
+        if (!allowed) {
+          await logSecurity({
+            tenant_id: job.tenant_id,
+            actor_user_id: operator_uid,
+            category: "authz.denied",
+            severity: "warn",
+            subject_type: "job",
+            subject_id: job_id,
+            message: "replay_dead_letter denied",
+          });
+          return j({ error: "operator role required" }, 403);
+        }
+
         await sb.from("workflow_jobs").update({
           state: "queued", retry_attempt: 0, error: null,
           backoff_until: null, scheduled_at: new Date().toISOString(),
@@ -89,10 +155,17 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         }).eq("id", job_id);
         await sb.from("runtime_audit_log").insert({
-          actor: "operator", action: "deadletter.replay",
+          tenant_id: job.tenant_id, actor: operator_uid, action: "deadletter.replay",
           subject_type: "job", subject_id: job_id, details: { run_id: job.run_id },
         });
-        // kick worker
+        await logSecurity({
+          tenant_id: job.tenant_id,
+          actor_user_id: operator_uid,
+          category: "operator.action",
+          subject_type: "job",
+          subject_id: job_id,
+          message: "dead-letter job re-queued",
+        });
         kickWorker();
         return j({ ok: true });
       }
@@ -103,19 +176,3 @@ Deno.serve(async (req) => {
     return j({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
 });
-
-function j(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status, headers: { ...cors, "Content-Type": "application/json" },
-  });
-}
-
-function kickWorker() {
-  const url = Deno.env.get("SUPABASE_URL")!;
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  fetch(`${url}/functions/v1/run-worker`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-    body: "{}",
-  }).catch(() => {});
-}
