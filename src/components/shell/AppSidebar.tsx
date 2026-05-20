@@ -41,6 +41,8 @@ const sections = [
     label: 'Automate',
     items: [
       { title: 'Workflows', url: '/workflows', icon: GitBranch },
+      { title: 'Studio', url: '/studio', icon: Workflow },
+
       { title: 'AI Builder', url: '/ai-builder', icon: Sparkles },
       { title: 'Runs', url: '/runs', icon: History },
       { title: 'Governance', url: '/governance', icon: ShieldCheck },
