@@ -33,8 +33,14 @@ Deno.serve(async (req) => {
 
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+  // Heartbeat: announce this worker is alive for stale-job sweeper.
+  await sb.from("worker_heartbeats").upsert({
+    worker_id: WORKER_ID, last_seen_at: new Date().toISOString(), status: "alive",
+  });
+
   let processed = 0;
   const touchedRuns = new Set<string>();
+
 
   for (let i = 0; i < BATCH; i++) {
     const { data: job, error: claimErr } = await sb.rpc("claim_next_job", { _worker_id: WORKER_ID });
