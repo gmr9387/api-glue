@@ -51,6 +51,8 @@ function AppShell() {
               <Route path="/connectors" element={<Connectors />} />
               <Route path="/playground" element={<Playground />} />
               <Route path="/workflows" element={<Workflows />} />
+              <Route path="/studio" element={<WorkflowStudio />} />
+
               <Route path="/ai-builder" element={<AIBuilder />} />
               <Route path="/runs" element={<Runs />} />
               <Route path="/governance" element={<Governance />} />
