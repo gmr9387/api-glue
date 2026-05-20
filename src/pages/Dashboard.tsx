@@ -24,6 +24,7 @@ import { ObservabilityPanel } from '@/components/mission/ObservabilityPanel';
 import { ControlPlanePanel } from '@/components/mission/ControlPlanePanel';
 import { RuntimeHealth } from '@/components/mission/RuntimeHealth';
 import { SecurityEventsFeed } from '@/components/mission/SecurityEventsFeed';
+import { ActivationPanel } from '@/components/mission/ActivationPanel';
 
 const healthTone = (status: string) =>
   status === 'healthy' ? 'success'
