@@ -100,6 +100,48 @@ export type Database = {
         }
         Relationships: []
       }
+      connector_state: {
+        Row: {
+          backoff_until: string | null
+          connector: string
+          failure_rate: number
+          id: string
+          last_error: string | null
+          last_success_at: string | null
+          latency_ms: number | null
+          quota_limit: number
+          quota_used: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          backoff_until?: string | null
+          connector: string
+          failure_rate?: number
+          id?: string
+          last_error?: string | null
+          last_success_at?: string | null
+          latency_ms?: number | null
+          quota_limit?: number
+          quota_used?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          backoff_until?: string | null
+          connector?: string
+          failure_rate?: number
+          id?: string
+          last_error?: string | null
+          last_success_at?: string | null
+          latency_ms?: number | null
+          quota_limit?: number
+          quota_used?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

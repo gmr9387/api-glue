@@ -200,4 +200,34 @@
   .glow-primary { box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2), 0 8px 24px -8px hsl(var(--primary) / 0.25); }
   .glow-accent  { box-shadow: 0 0 0 1px hsl(var(--accent)  / 0.2), 0 8px 24px -8px hsl(var(--accent)  / 0.25); }
   .border-glow  { @apply border border-primary/30; box-shadow: 0 0 0 1px hsl(var(--primary) / 0.15); }
+
+  /* Telemetry pulse — used for live-streaming indicators */
+  @keyframes telemetry-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 hsl(var(--success) / 0.6); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 6px hsl(var(--success) / 0); }
+  }
+  .telemetry-pulse {
+    animation: telemetry-pulse 2s ease-in-out infinite;
+  }
+
+  /* Severity dot tokens — consolidate component-level styling */
+  .sev-debug    { color: hsl(var(--muted-foreground)); }
+  .sev-info     { color: hsl(var(--info)); }
+  .sev-warn     { color: hsl(var(--warning)); }
+  .sev-error    { color: hsl(var(--destructive)); }
+  .sev-critical { color: hsl(var(--destructive)); font-weight: 600; }
+
+  /* Tactical scan line — for live-data panels */
+  @keyframes scan-line {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+  }
+  .scan-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent, hsl(var(--primary) / 0.06), transparent);
+    animation: scan-line 4s linear infinite;
+    pointer-events: none;
+  }
 }

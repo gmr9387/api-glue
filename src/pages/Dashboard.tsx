@@ -15,6 +15,10 @@ import { DecisionWeaver } from '@/components/mission/DecisionWeaver';
 import { QueueGauge } from '@/components/mission/QueueGauge';
 import { LiveTelemetryPanel } from '@/components/mission/LiveTelemetryPanel';
 import { LiveOpsRuntime } from '@/components/mission/LiveOpsRuntime';
+import { ReplayConsole } from '@/components/mission/ReplayConsole';
+import { OrchestrationGraph } from '@/components/mission/OrchestrationGraph';
+import { GovernancePanel } from '@/components/mission/GovernancePanel';
+import { ConnectorMatrix } from '@/components/mission/ConnectorMatrix';
 
 const healthTone = (status: string) =>
   status === 'healthy' ? 'success'
@@ -104,7 +108,18 @@ export default function Dashboard() {
 
       <LiveOpsRuntime />
 
-      <LiveTelemetryPanel />
+      <OrchestrationGraph />
+
+      <ConnectorMatrix />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <LiveTelemetryPanel />
+        <GovernancePanel compact />
+      </div>
+
+      <ReplayConsole />
+
+
 
 
 

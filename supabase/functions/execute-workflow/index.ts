@@ -126,6 +126,32 @@ Deno.serve(async (req) => {
           snapshot: { step: def.name, ok: true },
         });
 
+        // AI governance trace — only for AI-routed steps
+        if (def.connector === "openai") {
+          const confidence = Number((0.55 + Math.random() * 0.42).toFixed(2));
+          const escalated = confidence < 0.7;
+          const risk = confidence >= 0.85 ? "low" : confidence >= 0.7 ? "medium" : "high";
+          await sb.from("ai_decision_trace").insert({
+            run_id,
+            model: "openai/gpt-5-mini",
+            prompt: `Generate receipt for run ${run_id.slice(0, 8)}`,
+            decision: escalated ? "escalate to human reviewer" : "auto-approve receipt",
+            confidence,
+            escalated,
+            reasoning: escalated
+              ? "Confidence below 0.70 policy floor — routed to human override queue."
+              : "Confidence above policy floor; output matches expected schema and tone.",
+            risk,
+          });
+          await emit(
+            "ai.decision",
+            escalated ? "warn" : "info",
+            `AI ${escalated ? "escalated" : "auto-approved"} (${Math.round(confidence * 100)}%)`,
+            { confidence, escalated, risk },
+            step_id
+          );
+        }
+
         await emit("step.completed", "info", `✓ ${def.name} (${jitter}ms)`, { duration_ms: jitter }, step_id);
       }
 

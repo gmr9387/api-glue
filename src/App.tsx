@@ -19,6 +19,7 @@ import Workflows from "./pages/Workflows";
 import AIBuilder from "./pages/AIBuilder";
 import Runs from "./pages/Runs";
 import Settings from "./pages/Settings";
+import Governance from "./pages/Governance";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -50,6 +51,7 @@ function AppShell() {
               <Route path="/workflows" element={<Workflows />} />
               <Route path="/ai-builder" element={<AIBuilder />} />
               <Route path="/runs" element={<Runs />} />
+              <Route path="/governance" element={<Governance />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
