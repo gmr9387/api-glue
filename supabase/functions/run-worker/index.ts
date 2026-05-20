@@ -38,8 +38,31 @@ Deno.serve(async (req) => {
     worker_id: WORKER_ID, last_seen_at: new Date().toISOString(), status: "alive",
   });
 
+  // Distributed registry: register this worker (or refresh its heartbeat).
+  // active_jobs is incremented by claim_next_job and decremented when we finish.
+  const REGION = Deno.env.get("WORKER_REGION") ?? "default";
+  const CAPABILITIES = (Deno.env.get("WORKER_CAPABILITIES") ?? "internal,stripe,openai,sendgrid,twilio,slack,salesforce")
+    .split(",").map((s) => s.trim()).filter(Boolean);
+  await sb.from("worker_registry").upsert({
+    worker_id: WORKER_ID,
+    region: REGION,
+    capabilities: CAPABILITIES,
+    last_heartbeat: new Date().toISOString(),
+    health_state: "active",
+  }, { onConflict: "worker_id" });
+
+  // If this worker has been drained externally, exit immediately.
+  const { data: me } = await sb.from("worker_registry").select("health_state").eq("worker_id", WORKER_ID).single();
+  if (me?.health_state && me.health_state !== "active") {
+    return new Response(JSON.stringify({ worker_id: WORKER_ID, processed: 0, drained: true }), {
+      status: 200, headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
+
   let processed = 0;
   const touchedRuns = new Set<string>();
+
+
 
 
   for (let i = 0; i < BATCH; i++) {
