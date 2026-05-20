@@ -25,6 +25,7 @@ export type Database = {
           reasoning: string | null
           risk: string | null
           run_id: string | null
+          tenant_id: string | null
           ts: string
         }
         Insert: {
@@ -37,6 +38,7 @@ export type Database = {
           reasoning?: string | null
           risk?: string | null
           run_id?: string | null
+          tenant_id?: string | null
           ts?: string
         }
         Update: {
@@ -49,6 +51,7 @@ export type Database = {
           reasoning?: string | null
           risk?: string | null
           run_id?: string | null
+          tenant_id?: string | null
           ts?: string
         }
         Relationships: [
@@ -112,6 +115,7 @@ export type Database = {
           quota_limit: number
           quota_used: number
           status: string
+          tenant_id: string | null
           updated_at: string
         }
         Insert: {
@@ -125,6 +129,7 @@ export type Database = {
           quota_limit?: number
           quota_used?: number
           status?: string
+          tenant_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -138,7 +143,41 @@ export type Database = {
           quota_limit?: number
           quota_used?: number
           status?: string
+          tenant_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      governance_policies: {
+        Row: {
+          auto_reject_below: number | null
+          created_at: string
+          enabled: boolean
+          escalation_role: string
+          id: string
+          min_confidence: number
+          name: string
+          tenant_id: string | null
+        }
+        Insert: {
+          auto_reject_below?: number | null
+          created_at?: string
+          enabled?: boolean
+          escalation_role?: string
+          id?: string
+          min_confidence?: number
+          name: string
+          tenant_id?: string | null
+        }
+        Update: {
+          auto_reject_below?: number | null
+          created_at?: string
+          enabled?: boolean
+          escalation_role?: string
+          id?: string
+          min_confidence?: number
+          name?: string
+          tenant_id?: string | null
         }
         Relationships: []
       }
@@ -172,6 +211,39 @@ export type Database = {
         }
         Relationships: []
       }
+      runtime_audit_log: {
+        Row: {
+          action: string
+          actor: string
+          details: Json
+          id: string
+          subject_id: string | null
+          subject_type: string | null
+          tenant_id: string | null
+          ts: string
+        }
+        Insert: {
+          action: string
+          actor: string
+          details?: Json
+          id?: string
+          subject_id?: string | null
+          subject_type?: string | null
+          tenant_id?: string | null
+          ts?: string
+        }
+        Update: {
+          action?: string
+          actor?: string
+          details?: Json
+          id?: string
+          subject_id?: string | null
+          subject_type?: string | null
+          tenant_id?: string | null
+          ts?: string
+        }
+        Relationships: []
+      }
       saved_workflows: {
         Row: {
           created_at: string
@@ -202,33 +274,170 @@ export type Database = {
         }
         Relationships: []
       }
+      sla_breaches: {
+        Row: {
+          budget_ms: number
+          detected_at: string
+          escalated: boolean
+          id: string
+          observed_ms: number
+          policy_id: string | null
+          resolved_at: string | null
+          run_id: string | null
+          scope: string
+          severity: string
+          step_id: string | null
+          target: string
+          tenant_id: string | null
+        }
+        Insert: {
+          budget_ms: number
+          detected_at?: string
+          escalated?: boolean
+          id?: string
+          observed_ms: number
+          policy_id?: string | null
+          resolved_at?: string | null
+          run_id?: string | null
+          scope: string
+          severity: string
+          step_id?: string | null
+          target: string
+          tenant_id?: string | null
+        }
+        Update: {
+          budget_ms?: number
+          detected_at?: string
+          escalated?: boolean
+          id?: string
+          observed_ms?: number
+          policy_id?: string | null
+          resolved_at?: string | null
+          run_id?: string | null
+          scope?: string
+          severity?: string
+          step_id?: string | null
+          target?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_breaches_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "sla_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sla_policies: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          escalate_after_ms: number | null
+          id: string
+          max_duration_ms: number
+          scope: string
+          severity: string
+          target: string
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          escalate_after_ms?: number | null
+          id?: string
+          max_duration_ms: number
+          scope: string
+          severity?: string
+          target: string
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          escalate_after_ms?: number | null
+          id?: string
+          max_duration_ms?: number
+          scope?: string
+          severity?: string
+          target?: string
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
+      worker_heartbeats: {
+        Row: {
+          jobs_processed: number
+          last_seen_at: string
+          metadata: Json
+          status: string
+          worker_id: string
+        }
+        Insert: {
+          jobs_processed?: number
+          last_seen_at?: string
+          metadata?: Json
+          status?: string
+          worker_id: string
+        }
+        Update: {
+          jobs_processed?: number
+          last_seen_at?: string
+          metadata?: Json
+          status?: string
+          worker_id?: string
+        }
+        Relationships: []
+      }
       workflow_approvals: {
         Row: {
+          dag_node_id: string | null
           decided_at: string | null
           decided_by: string | null
           decision: string | null
+          escalated_to: string | null
+          expires_at: string | null
           id: string
+          job_id: string | null
+          reason: string | null
           requested_at: string
           run_id: string
+          state: string
           step_id: string | null
+          tenant_id: string | null
         }
         Insert: {
+          dag_node_id?: string | null
           decided_at?: string | null
           decided_by?: string | null
           decision?: string | null
+          escalated_to?: string | null
+          expires_at?: string | null
           id?: string
+          job_id?: string | null
+          reason?: string | null
           requested_at?: string
           run_id: string
+          state?: string
           step_id?: string | null
+          tenant_id?: string | null
         }
         Update: {
+          dag_node_id?: string | null
           decided_at?: string | null
           decided_by?: string | null
           decision?: string | null
+          escalated_to?: string | null
+          expires_at?: string | null
           id?: string
+          job_id?: string | null
+          reason?: string | null
           requested_at?: string
           run_id?: string
+          state?: string
           step_id?: string | null
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -253,6 +462,7 @@ export type Database = {
           run_id: string
           snapshot: Json
           step_index: number
+          tenant_id: string | null
           ts: string
         }
         Insert: {
@@ -260,6 +470,7 @@ export type Database = {
           run_id: string
           snapshot?: Json
           step_index: number
+          tenant_id?: string | null
           ts?: string
         }
         Update: {
@@ -267,6 +478,7 @@ export type Database = {
           run_id?: string
           snapshot?: Json
           step_index?: number
+          tenant_id?: string | null
           ts?: string
         }
         Relationships: [
@@ -348,6 +560,7 @@ export type Database = {
           severity: string
           source: string | null
           step_id: string | null
+          tenant_id: string | null
           ts: string
           type: string
         }
@@ -359,6 +572,7 @@ export type Database = {
           severity?: string
           source?: string | null
           step_id?: string | null
+          tenant_id?: string | null
           ts?: string
           type: string
         }
@@ -370,6 +584,7 @@ export type Database = {
           severity?: string
           source?: string | null
           step_id?: string | null
+          tenant_id?: string | null
           ts?: string
           type?: string
         }
@@ -403,6 +618,7 @@ export type Database = {
           run_id: string | null
           severity: string
           summary: string
+          tenant_id: string | null
         }
         Insert: {
           acknowledged_by?: string | null
@@ -416,6 +632,7 @@ export type Database = {
           run_id?: string | null
           severity?: string
           summary: string
+          tenant_id?: string | null
         }
         Update: {
           acknowledged_by?: string | null
@@ -429,6 +646,7 @@ export type Database = {
           run_id?: string | null
           severity?: string
           summary?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -447,8 +665,10 @@ export type Database = {
           created_at: string
           dag_node_id: string
           error: string | null
+          heartbeat_at: string | null
           id: string
           idempotency_key: string
+          lease_expires_at: string | null
           max_retries: number
           payload: Json
           priority: number
@@ -458,6 +678,7 @@ export type Database = {
           started_at: string | null
           state: string
           step_id: string | null
+          tenant_id: string | null
           updated_at: string
           worker_id: string | null
         }
@@ -467,8 +688,10 @@ export type Database = {
           created_at?: string
           dag_node_id: string
           error?: string | null
+          heartbeat_at?: string | null
           id?: string
           idempotency_key: string
+          lease_expires_at?: string | null
           max_retries?: number
           payload?: Json
           priority?: number
@@ -478,6 +701,7 @@ export type Database = {
           started_at?: string | null
           state?: string
           step_id?: string | null
+          tenant_id?: string | null
           updated_at?: string
           worker_id?: string | null
         }
@@ -487,8 +711,10 @@ export type Database = {
           created_at?: string
           dag_node_id?: string
           error?: string | null
+          heartbeat_at?: string | null
           id?: string
           idempotency_key?: string
+          lease_expires_at?: string | null
           max_retries?: number
           payload?: Json
           priority?: number
@@ -498,8 +724,45 @@ export type Database = {
           started_at?: string | null
           state?: string
           step_id?: string | null
+          tenant_id?: string | null
           updated_at?: string
           worker_id?: string | null
+        }
+        Relationships: []
+      }
+      workflow_rollbacks: {
+        Row: {
+          compensations: Json
+          ended_at: string | null
+          id: string
+          reason: string | null
+          run_id: string
+          started_at: string
+          state: string
+          tenant_id: string | null
+          triggered_by: string
+        }
+        Insert: {
+          compensations?: Json
+          ended_at?: string | null
+          id?: string
+          reason?: string | null
+          run_id: string
+          started_at?: string
+          state?: string
+          tenant_id?: string | null
+          triggered_by: string
+        }
+        Update: {
+          compensations?: Json
+          ended_at?: string | null
+          id?: string
+          reason?: string | null
+          run_id?: string
+          started_at?: string
+          state?: string
+          tenant_id?: string | null
+          triggered_by?: string
         }
         Relationships: []
       }
@@ -597,6 +860,7 @@ export type Database = {
           started_at: string | null
           state: string
           step_index: number
+          tenant_id: string | null
         }
         Insert: {
           attempt?: number
@@ -619,6 +883,7 @@ export type Database = {
           started_at?: string | null
           state?: string
           step_index: number
+          tenant_id?: string | null
         }
         Update: {
           attempt?: number
@@ -641,6 +906,7 @@ export type Database = {
           started_at?: string | null
           state?: string
           step_index?: number
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -665,8 +931,10 @@ export type Database = {
           created_at: string
           dag_node_id: string
           error: string | null
+          heartbeat_at: string | null
           id: string
           idempotency_key: string
+          lease_expires_at: string | null
           max_retries: number
           payload: Json
           priority: number
@@ -676,6 +944,7 @@ export type Database = {
           started_at: string | null
           state: string
           step_id: string | null
+          tenant_id: string | null
           updated_at: string
           worker_id: string | null
         }
@@ -685,6 +954,32 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      detect_sla_breaches: {
+        Args: never
+        Returns: {
+          breached: number
+        }[]
+      }
+      expire_pending_approvals: {
+        Args: never
+        Returns: {
+          expired: number
+        }[]
+      }
+      reject_approval: {
+        Args: { _approval_id: string; _operator: string; _reason?: string }
+        Returns: undefined
+      }
+      resume_after_approval: {
+        Args: { _approval_id: string; _operator: string }
+        Returns: undefined
+      }
+      sweep_stale_jobs: {
+        Args: { _lease_seconds?: number }
+        Returns: {
+          recovered: number
+        }[]
       }
     }
     Enums: {
