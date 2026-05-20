@@ -409,7 +409,7 @@ async function processJob(sb: SupabaseClient, job: Job) {
 }
 
 async function enqueueDownstream(sb: SupabaseClient, runId: string, completedNodeId: string) {
-  const { data: run } = await sb.from("workflow_runs").select("dag_id,correlation_id").eq("id", runId).single();
+  const { data: run } = await sb.from("workflow_runs").select("dag_id,correlation_id,workflow_version_id,tenant_id").eq("id", runId).single();
   const { data: dagRow } = await sb.from("workflow_dags").select("graph").eq("id", run?.dag_id ?? "demo.live").single();
   const graph = (dagRow?.graph ?? { nodes: [] }) as DagGraph;
 
@@ -427,6 +427,8 @@ async function enqueueDownstream(sb: SupabaseClient, runId: string, completedNod
     const idem = `${runId}:${n.id}`;
     await sb.from("workflow_jobs").insert({
       run_id: runId,
+      tenant_id: run?.tenant_id,
+      workflow_version_id: run?.workflow_version_id ?? null,
       dag_node_id: n.id,
       state: "queued",
       max_retries: n.maxRetries ?? 3,
@@ -435,6 +437,7 @@ async function enqueueDownstream(sb: SupabaseClient, runId: string, completedNod
     }).then(() => {}, () => {/* unique violation = already enqueued, fine */});
   }
 }
+
 
 async function finalizeRunIfDone(sb: SupabaseClient, runId: string) {
   const { data: run } = await sb.from("workflow_runs").select("*").eq("id", runId).single();
