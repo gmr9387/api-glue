@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       console.error("[run-worker] claim error", claimErr);
       break;
     }
-    if (!job) break;
+    if (!job || !job.id) break;
     try {
       await processJob(sb, job);
       touchedRuns.add(job.run_id);
