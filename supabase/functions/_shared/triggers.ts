@@ -14,7 +14,10 @@ export interface EnqueueArgs {
   source_label?: string;
   trigger_id?: string | null;
   depth?: number;
+  /** Phase 16: pin runtime execution to a specific immutable workflow version. */
+  workflow_version_id?: string | null;
 }
+
 
 export interface EnqueueResult {
   ok: boolean;
