@@ -169,6 +169,58 @@ Deno.serve(async (req) => {
         kickWorker();
         return j({ ok: true });
       }
+      case "pause_webhook":
+      case "resume_webhook": {
+        if (!body.endpoint_id) return j({ error: "endpoint_id required" }, 400);
+        const { error } = await sb.rpc("pause_webhook", {
+          _endpoint_id: body.endpoint_id, _paused: action === "pause_webhook",
+          _operator_uid: operator_uid,
+        });
+        if (error) return j({ error: error.message }, 403);
+        return j({ ok: true });
+      }
+      case "set_schedule_state": {
+        if (!body.schedule_id || !body.state) return j({ error: "schedule_id + state required" }, 400);
+        const { error } = await sb.rpc("set_schedule_state", {
+          _schedule_id: body.schedule_id, _state: body.state, _operator_uid: operator_uid,
+        });
+        if (error) return j({ error: error.message }, 403);
+        return j({ ok: true });
+      }
+      case "replay_webhook_delivery": {
+        if (!body.delivery_id) return j({ error: "delivery_id required" }, 400);
+        const { data: del } = await sb.from("webhook_deliveries").select("*").eq("id", body.delivery_id).maybeSingle();
+        if (!del) return j({ error: "delivery not found" }, 404);
+        const { data: allowed } = await sb.rpc("has_operator_role", {
+          _uid: operator_uid, _tenant_id: del.tenant_id, _required: "operator",
+        });
+        if (!allowed) return j({ error: "operator role required" }, 403);
+        const { data: ep } = await sb.from("webhook_endpoints").select("*").eq("id", del.endpoint_id).maybeSingle();
+        if (!ep) return j({ error: "endpoint missing" }, 404);
+        // Re-enqueue (mirrors webhook-ingress enqueue path).
+        const { enqueueFromTrigger } = await import("../_shared/triggers.ts");
+        const correlation_id = crypto.randomUUID();
+        const result = await enqueueFromTrigger(sb, {
+          tenant_id: del.tenant_id, dag_id: ep.dag_id,
+          payload: { event: del.body, headers: del.headers, source: ep.source, endpoint_key: ep.endpoint_key, replayed_from: del.id },
+          correlation_id,
+          workflow_name: `webhook-replay:${ep.endpoint_key}`,
+          trigger_kind: "webhook", source_label: `${ep.endpoint_key}:replay`,
+        });
+        if (!result.ok) return j({ error: result.error ?? "enqueue failed" }, 500);
+        await sb.from("webhook_deliveries").insert({
+          tenant_id: del.tenant_id, endpoint_id: del.endpoint_id, headers: del.headers,
+          body: del.body, raw_body: del.raw_body, signature_valid: true,
+          status: "enqueued", run_id: result.run_id, correlation_id,
+        });
+        await sb.from("runtime_audit_log").insert({
+          tenant_id: del.tenant_id, actor: operator_uid, action: "webhook.replay",
+          subject_type: "webhook_delivery", subject_id: body.delivery_id,
+          details: { run_id: result.run_id },
+        });
+        return j({ ok: true, run_id: result.run_id });
+      }
+
       default:
         return j({ error: `unknown action: ${action}` }, 400);
     }
