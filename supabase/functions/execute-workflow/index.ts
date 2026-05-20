@@ -38,7 +38,6 @@ Deno.serve(async (req) => {
 
     const { data: runRow, error: runErr } = await sb.from("workflow_runs").insert({
       workflow_name,
-      workflow_id: dag_id,
       dag_id,
       state: "queued",
       status: "queued",
