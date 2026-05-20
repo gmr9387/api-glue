@@ -14,6 +14,7 @@ import { Heatmap } from '@/components/mission/Heatmap';
 import { DecisionWeaver } from '@/components/mission/DecisionWeaver';
 import { QueueGauge } from '@/components/mission/QueueGauge';
 import { LiveTelemetryPanel } from '@/components/mission/LiveTelemetryPanel';
+import { LiveOpsRuntime } from '@/components/mission/LiveOpsRuntime';
 
 const healthTone = (status: string) =>
   status === 'healthy' ? 'success'
@@ -100,6 +101,8 @@ export default function Dashboard() {
         </div>
         <DecisionWeaver />
       </section>
+
+      <LiveOpsRuntime />
 
       <LiveTelemetryPanel />
 
