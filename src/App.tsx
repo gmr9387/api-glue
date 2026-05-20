@@ -16,6 +16,8 @@ import Dashboard from "./pages/Dashboard";
 import Connectors from "./pages/Connectors";
 import Playground from "./pages/Playground";
 import Workflows from "./pages/Workflows";
+import WorkflowStudio from "./pages/WorkflowStudio";
+
 import AIBuilder from "./pages/AIBuilder";
 import Runs from "./pages/Runs";
 import Settings from "./pages/Settings";
@@ -49,6 +51,8 @@ function AppShell() {
               <Route path="/connectors" element={<Connectors />} />
               <Route path="/playground" element={<Playground />} />
               <Route path="/workflows" element={<Workflows />} />
+              <Route path="/studio" element={<WorkflowStudio />} />
+
               <Route path="/ai-builder" element={<AIBuilder />} />
               <Route path="/runs" element={<Runs />} />
               <Route path="/governance" element={<Governance />} />

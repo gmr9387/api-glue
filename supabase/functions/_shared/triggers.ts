@@ -14,7 +14,10 @@ export interface EnqueueArgs {
   source_label?: string;
   trigger_id?: string | null;
   depth?: number;
+  /** Phase 16: pin runtime execution to a specific immutable workflow version. */
+  workflow_version_id?: string | null;
 }
+
 
 export interface EnqueueResult {
   ok: boolean;
@@ -74,6 +77,7 @@ export async function enqueueFromTrigger(sb: SupabaseClient, a: EnqueueArgs): Pr
     state: "queued",
     status: "queued",
     correlation_id,
+    workflow_version_id: a.workflow_version_id ?? null,
     payload: { ...(a.payload ?? {}), _trigger: { kind: a.trigger_kind, source: a.source_label, depth } },
     started_at: new Date().toISOString(),
   }).select("id").single();
@@ -92,9 +96,11 @@ export async function enqueueFromTrigger(sb: SupabaseClient, a: EnqueueArgs): Pr
       state: "queued",
       max_retries: n.maxRetries ?? 3,
       idempotency_key: `${run_id}:${n.id}`,
+      workflow_version_id: a.workflow_version_id ?? null,
       payload: { correlation_id, ...(a.payload ?? {}) },
     })));
   }
+
 
   await sb.from("workflow_runs").update({ state: "running", status: "running" }).eq("id", run_id);
 

@@ -103,6 +103,39 @@ export type Database = {
         }
         Relationships: []
       }
+      connector_schemas: {
+        Row: {
+          capabilities: Json
+          connector: string
+          created_at: string
+          description: string | null
+          id: string
+          input_schema: Json
+          output_schema: Json
+          version: number
+        }
+        Insert: {
+          capabilities?: Json
+          connector: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          input_schema?: Json
+          output_schema?: Json
+          version?: number
+        }
+        Update: {
+          capabilities?: Json
+          connector?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          input_schema?: Json
+          output_schema?: Json
+          version?: number
+        }
+        Relationships: []
+      }
       connector_state: {
         Row: {
           backoff_until: string | null
@@ -923,6 +956,7 @@ export type Database = {
           step_index: number
           tenant_id: string | null
           ts: string
+          workflow_version_id: string | null
         }
         Insert: {
           id?: string
@@ -931,6 +965,7 @@ export type Database = {
           step_index: number
           tenant_id?: string | null
           ts?: string
+          workflow_version_id?: string | null
         }
         Update: {
           id?: string
@@ -939,6 +974,7 @@ export type Database = {
           step_index?: number
           tenant_id?: string | null
           ts?: string
+          workflow_version_id?: string | null
         }
         Relationships: [
           {
@@ -1013,6 +1049,45 @@ export type Database = {
           payload?: Json
           run_id?: string
           tenant_id?: string | null
+        }
+        Relationships: []
+      }
+      workflow_definitions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          latest_version: number
+          name: string
+          owner_user_id: string | null
+          state: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          latest_version?: number
+          name: string
+          owner_user_id?: string | null
+          state?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          latest_version?: number
+          name?: string
+          owner_user_id?: string | null
+          state?: string
+          tenant_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1156,6 +1231,7 @@ export type Database = {
           tenant_id: string | null
           updated_at: string
           worker_id: string | null
+          workflow_version_id: string | null
         }
         Insert: {
           backoff_until?: string | null
@@ -1183,6 +1259,7 @@ export type Database = {
           tenant_id?: string | null
           updated_at?: string
           worker_id?: string | null
+          workflow_version_id?: string | null
         }
         Update: {
           backoff_until?: string | null
@@ -1210,8 +1287,112 @@ export type Database = {
           tenant_id?: string | null
           updated_at?: string
           worker_id?: string | null
+          workflow_version_id?: string | null
         }
         Relationships: []
+      }
+      workflow_migrations: {
+        Row: {
+          actor_user_id: string | null
+          definition_id: string
+          ended_at: string | null
+          from_version_id: string | null
+          id: string
+          report: Json
+          started_at: string
+          state: string
+          strategy: string
+          tenant_id: string
+          to_version_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          definition_id: string
+          ended_at?: string | null
+          from_version_id?: string | null
+          id?: string
+          report?: Json
+          started_at?: string
+          state?: string
+          strategy?: string
+          tenant_id: string
+          to_version_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          definition_id?: string
+          ended_at?: string | null
+          from_version_id?: string | null
+          id?: string
+          report?: Json
+          started_at?: string
+          state?: string
+          strategy?: string
+          tenant_id?: string
+          to_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_migrations_definition_id_fkey"
+            columns: ["definition_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_migrations_from_version_id_fkey"
+            columns: ["from_version_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_migrations_to_version_id_fkey"
+            columns: ["to_version_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_published_versions: {
+        Row: {
+          definition_id: string
+          published_at: string
+          published_by: string | null
+          tenant_id: string
+          version_id: string
+        }
+        Insert: {
+          definition_id: string
+          published_at?: string
+          published_by?: string | null
+          tenant_id: string
+          version_id: string
+        }
+        Update: {
+          definition_id?: string
+          published_at?: string
+          published_by?: string | null
+          tenant_id?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_published_versions_definition_id_fkey"
+            columns: ["definition_id"]
+            isOneToOne: true
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_published_versions_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workflow_rollbacks: {
         Row: {
@@ -1275,6 +1456,7 @@ export type Database = {
           user_id: string | null
           workflow_id: string | null
           workflow_name: string
+          workflow_version_id: string | null
         }
         Insert: {
           concurrency_key?: string | null
@@ -1301,6 +1483,7 @@ export type Database = {
           user_id?: string | null
           workflow_id?: string | null
           workflow_name: string
+          workflow_version_id?: string | null
         }
         Update: {
           concurrency_key?: string | null
@@ -1327,6 +1510,7 @@ export type Database = {
           user_id?: string | null
           workflow_id?: string | null
           workflow_name?: string
+          workflow_version_id?: string | null
         }
         Relationships: []
       }
@@ -1473,6 +1657,110 @@ export type Database = {
           },
         ]
       }
+      workflow_validation_reports: {
+        Row: {
+          errors: Json
+          id: string
+          ok: boolean
+          tenant_id: string
+          ts: string
+          version_id: string
+          warnings: Json
+        }
+        Insert: {
+          errors?: Json
+          id?: string
+          ok?: boolean
+          tenant_id: string
+          ts?: string
+          version_id: string
+          warnings?: Json
+        }
+        Update: {
+          errors?: Json
+          id?: string
+          ok?: boolean
+          tenant_id?: string
+          ts?: string
+          version_id?: string
+          warnings?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_validation_reports_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_versions: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          definition_id: string
+          graph: Json
+          id: string
+          metadata: Json
+          parent_version_id: string | null
+          published_at: string | null
+          published_by: string | null
+          state: string
+          tenant_id: string
+          validation: Json | null
+          version: number
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          definition_id: string
+          graph?: Json
+          id?: string
+          metadata?: Json
+          parent_version_id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          state?: string
+          tenant_id: string
+          validation?: Json | null
+          version: number
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          definition_id?: string
+          graph?: Json
+          id?: string
+          metadata?: Json
+          parent_version_id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          state?: string
+          tenant_id?: string
+          validation?: Json | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_versions_definition_id_fkey"
+            columns: ["definition_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_versions_parent_version_id_fkey"
+            columns: ["parent_version_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1489,6 +1777,10 @@ export type Database = {
         Returns: {
           archived: number
         }[]
+      }
+      archive_workflow_version: {
+        Args: { _operator_uid: string; _version_id: string }
+        Returns: undefined
       }
       claim_due_schedules: {
         Args: { _limit?: number }
@@ -1547,6 +1839,7 @@ export type Database = {
           tenant_id: string | null
           updated_at: string
           worker_id: string | null
+          workflow_version_id: string | null
         }
         SetofOptions: {
           from: "*"
@@ -1554,6 +1847,19 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_draft_from_version: {
+        Args: { _operator_uid: string; _source_version_id: string }
+        Returns: string
+      }
+      create_workflow_definition: {
+        Args: {
+          _key: string
+          _name: string
+          _operator_uid: string
+          _tenant_id: string
+        }
+        Returns: string
       }
       current_user_tenants: { Args: never; Returns: string[] }
       detect_sla_breaches: {
@@ -1603,6 +1909,10 @@ export type Database = {
         Args: { _endpoint_id: string; _operator_uid: string; _paused: boolean }
         Returns: undefined
       }
+      publish_workflow_version: {
+        Args: { _operator_uid: string; _version_id: string }
+        Returns: Json
+      }
       reconcile_orphans: {
         Args: { _worker_stale_seconds?: number }
         Returns: {
@@ -1636,6 +1946,14 @@ export type Database = {
             Args: { _approval_id: string; _operator_uid: string }
             Returns: undefined
           }
+      rollback_published_version: {
+        Args: {
+          _definition_id: string
+          _operator_uid: string
+          _target_version_id: string
+        }
+        Returns: undefined
+      }
       runtime_health_report: { Args: never; Returns: Json }
       set_schedule_state: {
         Args: { _operator_uid: string; _schedule_id: string; _state: string }
@@ -1646,6 +1964,10 @@ export type Database = {
         Returns: {
           recovered: number
         }[]
+      }
+      validate_workflow_version: {
+        Args: { _version_id: string }
+        Returns: Json
       }
     }
     Enums: {
