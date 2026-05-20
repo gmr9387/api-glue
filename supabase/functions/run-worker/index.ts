@@ -128,24 +128,34 @@ async function processJob(sb: SupabaseClient, job: Job) {
   }).eq("id", job.id);
 
   const startedAt = new Date().toISOString();
-  const { data: stepRow } = await sb
-    .from("workflow_step_runs")
-    .upsert({
-      id: existing?.id,
-      run_id: job.run_id,
-      step_index: stepIndex,
-      dag_node_id: node.id,
-      name: node.name,
-      connector: node.connector,
+  let step_id: string | null = existing?.id ?? null;
+  if (step_id) {
+    await sb.from("workflow_step_runs").update({
       state: "running",
       started_at: startedAt,
       attempt: job.retry_attempt,
-      idempotency_key: job.idempotency_key,
       inputs: job.payload,
-    }, { onConflict: "idempotency_key" })
-    .select()
-    .single();
-  const step_id = stepRow?.id ?? null;
+    }).eq("id", step_id);
+  } else {
+    const { data: inserted, error: stepErr } = await sb
+      .from("workflow_step_runs")
+      .insert({
+        run_id: job.run_id,
+        step_index: stepIndex,
+        dag_node_id: node.id,
+        name: node.name,
+        connector: node.connector,
+        state: "running",
+        started_at: startedAt,
+        attempt: job.retry_attempt,
+        idempotency_key: job.idempotency_key,
+        inputs: job.payload,
+      })
+      .select()
+      .single();
+    if (stepErr) throw stepErr;
+    step_id = inserted?.id ?? null;
+  }
 
   await emit(sb, job.run_id, step_id, "step.started", "info", `▶ ${node.name}`, {
     connector: node.connector, attempt: job.retry_attempt, dag_node_id: node.id,
