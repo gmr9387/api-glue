@@ -11,10 +11,10 @@ export async function listRecentRuns(limit = 50): Promise<WorkflowRun[]> {
   return (data ?? []) as unknown as WorkflowRun[];
 }
 
-export async function transitionRun(id: string, state: RunState, patch: Partial<WorkflowRun> = {}) {
+export async function transitionRun(id: string, state: RunState, patch: Record<string, unknown> = {}) {
   const { error } = await supabase
     .from("workflow_runs")
-    .update({ state, ...patch })
+    .update({ state, ...patch } as never)
     .eq("id", id);
   if (error) throw error;
 }
