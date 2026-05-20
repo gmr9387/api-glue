@@ -103,6 +103,81 @@ export type Database = {
         }
         Relationships: []
       }
+      circuit_breaker_events: {
+        Row: {
+          connector: string
+          detail: Json
+          from_state: string | null
+          id: string
+          reason: string | null
+          to_state: string
+          ts: string
+        }
+        Insert: {
+          connector: string
+          detail?: Json
+          from_state?: string | null
+          id?: string
+          reason?: string | null
+          to_state: string
+          ts?: string
+        }
+        Update: {
+          connector?: string
+          detail?: Json
+          from_state?: string | null
+          id?: string
+          reason?: string | null
+          to_state?: string
+          ts?: string
+        }
+        Relationships: []
+      }
+      connector_circuit_breakers: {
+        Row: {
+          connector: string
+          failure_count: number
+          failure_threshold: number
+          half_open_probes: number
+          last_failure_at: string | null
+          last_transition_at: string
+          next_attempt_at: string | null
+          opened_at: string | null
+          recovery_window_seconds: number
+          state: string
+          success_count: number
+          updated_at: string
+        }
+        Insert: {
+          connector: string
+          failure_count?: number
+          failure_threshold?: number
+          half_open_probes?: number
+          last_failure_at?: string | null
+          last_transition_at?: string
+          next_attempt_at?: string | null
+          opened_at?: string | null
+          recovery_window_seconds?: number
+          state?: string
+          success_count?: number
+          updated_at?: string
+        }
+        Update: {
+          connector?: string
+          failure_count?: number
+          failure_threshold?: number
+          half_open_probes?: number
+          last_failure_at?: string | null
+          last_transition_at?: string
+          next_attempt_at?: string | null
+          opened_at?: string | null
+          recovery_window_seconds?: number
+          state?: string
+          success_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       connector_schemas: {
         Row: {
           capabilities: Json
@@ -181,6 +256,45 @@ export type Database = {
         }
         Relationships: []
       }
+      dead_letter_recovery: {
+        Row: {
+          attempts: number
+          id: string
+          job_id: string | null
+          last_error: string | null
+          requested_at: string
+          requested_by: string | null
+          resolved_at: string | null
+          run_id: string | null
+          state: string
+          tenant_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          id?: string
+          job_id?: string | null
+          last_error?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          resolved_at?: string | null
+          run_id?: string | null
+          state?: string
+          tenant_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          id?: string
+          job_id?: string | null
+          last_error?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          resolved_at?: string | null
+          run_id?: string | null
+          state?: string
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
       governance_policies: {
         Row: {
           auto_reject_below: number | null
@@ -211,6 +325,69 @@ export type Database = {
           min_confidence?: number
           name?: string
           tenant_id?: string | null
+        }
+        Relationships: []
+      }
+      load_benchmarks: {
+        Row: {
+          completed_runs: number
+          config: Json
+          created_by: string | null
+          duration_ms: number | null
+          ended_at: string | null
+          failed_runs: number
+          id: string
+          name: string
+          p50_latency_ms: number | null
+          p95_latency_ms: number | null
+          p99_latency_ms: number | null
+          report: Json
+          scenario: string
+          started_at: string
+          state: string
+          tenant_id: string | null
+          throughput_per_sec: number | null
+          total_runs: number
+        }
+        Insert: {
+          completed_runs?: number
+          config?: Json
+          created_by?: string | null
+          duration_ms?: number | null
+          ended_at?: string | null
+          failed_runs?: number
+          id?: string
+          name: string
+          p50_latency_ms?: number | null
+          p95_latency_ms?: number | null
+          p99_latency_ms?: number | null
+          report?: Json
+          scenario: string
+          started_at?: string
+          state?: string
+          tenant_id?: string | null
+          throughput_per_sec?: number | null
+          total_runs?: number
+        }
+        Update: {
+          completed_runs?: number
+          config?: Json
+          created_by?: string | null
+          duration_ms?: number | null
+          ended_at?: string | null
+          failed_runs?: number
+          id?: string
+          name?: string
+          p50_latency_ms?: number | null
+          p95_latency_ms?: number | null
+          p99_latency_ms?: number | null
+          report?: Json
+          scenario?: string
+          started_at?: string
+          state?: string
+          tenant_id?: string | null
+          throughput_per_sec?: number | null
+          total_runs?: number
         }
         Relationships: []
       }
@@ -277,6 +454,39 @@ export type Database = {
         }
         Relationships: []
       }
+      queue_backpressure: {
+        Row: {
+          detail: Json
+          id: string
+          level: string
+          partition_key: string | null
+          signal: string
+          tenant_id: string | null
+          throttle_ms: number
+          ts: string
+        }
+        Insert: {
+          detail?: Json
+          id?: string
+          level?: string
+          partition_key?: string | null
+          signal: string
+          tenant_id?: string | null
+          throttle_ms?: number
+          ts?: string
+        }
+        Update: {
+          detail?: Json
+          id?: string
+          level?: string
+          partition_key?: string | null
+          signal?: string
+          tenant_id?: string | null
+          throttle_ms?: number
+          ts?: string
+        }
+        Relationships: []
+      }
       queue_partitions: {
         Row: {
           description: string | null
@@ -301,6 +511,48 @@ export type Database = {
           paused?: boolean
           tenant_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      queue_pressure_signals: {
+        Row: {
+          captured_at: string
+          dead_letter: number
+          delayed: number
+          id: string
+          in_flight: number
+          partition_key: string | null
+          pressure_score: number
+          queued: number
+          recommendation: string | null
+          retrying: number
+          tenant_id: string | null
+        }
+        Insert: {
+          captured_at?: string
+          dead_letter?: number
+          delayed?: number
+          id?: string
+          in_flight?: number
+          partition_key?: string | null
+          pressure_score?: number
+          queued?: number
+          recommendation?: string | null
+          retrying?: number
+          tenant_id?: string | null
+        }
+        Update: {
+          captured_at?: string
+          dead_letter?: number
+          delayed?: number
+          id?: string
+          in_flight?: number
+          partition_key?: string | null
+          pressure_score?: number
+          queued?: number
+          recommendation?: string | null
+          retrying?: number
+          tenant_id?: string | null
         }
         Relationships: []
       }
@@ -409,6 +661,36 @@ export type Database = {
           nodes?: Json | null
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      scaling_metrics: {
+        Row: {
+          captured_at: string
+          id: string
+          meta: Json
+          metric: string
+          scope: string
+          tenant_id: string | null
+          value: number
+        }
+        Insert: {
+          captured_at?: string
+          id?: string
+          meta?: Json
+          metric: string
+          scope: string
+          tenant_id?: string | null
+          value: number
+        }
+        Update: {
+          captured_at?: string
+          id?: string
+          meta?: Json
+          metric?: string
+          scope?: string
+          tenant_id?: string | null
+          value?: number
         }
         Relationships: []
       }
@@ -653,6 +935,66 @@ export type Database = {
         }
         Relationships: []
       }
+      trace_spans: {
+        Row: {
+          attributes: Json
+          correlation_id: string | null
+          duration_ms: number | null
+          ended_at: string | null
+          events: Json
+          id: string
+          kind: string
+          name: string
+          parent_span_id: string | null
+          run_id: string | null
+          service: string
+          span_id: string
+          started_at: string
+          status: string
+          step_id: string | null
+          tenant_id: string | null
+          trace_id: string
+        }
+        Insert: {
+          attributes?: Json
+          correlation_id?: string | null
+          duration_ms?: number | null
+          ended_at?: string | null
+          events?: Json
+          id?: string
+          kind?: string
+          name: string
+          parent_span_id?: string | null
+          run_id?: string | null
+          service?: string
+          span_id: string
+          started_at?: string
+          status?: string
+          step_id?: string | null
+          tenant_id?: string | null
+          trace_id: string
+        }
+        Update: {
+          attributes?: Json
+          correlation_id?: string | null
+          duration_ms?: number | null
+          ended_at?: string | null
+          events?: Json
+          id?: string
+          kind?: string
+          name?: string
+          parent_span_id?: string | null
+          run_id?: string | null
+          service?: string
+          span_id?: string
+          started_at?: string
+          status?: string
+          step_id?: string | null
+          tenant_id?: string | null
+          trace_id?: string
+        }
+        Relationships: []
+      }
       trigger_activations: {
         Row: {
           depth: number
@@ -819,6 +1161,39 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_capacity_snapshots: {
+        Row: {
+          active_jobs: number
+          captured_at: string
+          health_state: string
+          id: string
+          max_concurrency: number
+          region: string | null
+          saturation: number
+          worker_id: string
+        }
+        Insert: {
+          active_jobs?: number
+          captured_at?: string
+          health_state?: string
+          id?: string
+          max_concurrency?: number
+          region?: string | null
+          saturation?: number
+          worker_id: string
+        }
+        Update: {
+          active_jobs?: number
+          captured_at?: string
+          health_state?: string
+          id?: string
+          max_concurrency?: number
+          region?: string | null
+          saturation?: number
+          worker_id?: string
+        }
+        Relationships: []
+      }
       worker_heartbeats: {
         Row: {
           jobs_processed: number
@@ -852,8 +1227,13 @@ export type Database = {
           last_heartbeat: string
           max_concurrency: number
           metadata: Json
+          pid: string | null
+          process_kind: string | null
           region: string
+          shutdown_requested_at: string | null
           started_at: string
+          total_failed: number
+          total_processed: number
           worker_id: string
         }
         Insert: {
@@ -864,8 +1244,13 @@ export type Database = {
           last_heartbeat?: string
           max_concurrency?: number
           metadata?: Json
+          pid?: string | null
+          process_kind?: string | null
           region?: string
+          shutdown_requested_at?: string | null
           started_at?: string
+          total_failed?: number
+          total_processed?: number
           worker_id: string
         }
         Update: {
@@ -876,8 +1261,13 @@ export type Database = {
           last_heartbeat?: string
           max_concurrency?: number
           metadata?: Json
+          pid?: string | null
+          process_kind?: string | null
           region?: string
+          shutdown_requested_at?: string | null
           started_at?: string
+          total_failed?: number
+          total_processed?: number
           worker_id?: string
         }
         Relationships: []
@@ -1782,6 +2172,8 @@ export type Database = {
         Args: { _operator_uid: string; _version_id: string }
         Returns: undefined
       }
+      capture_queue_pressure: { Args: never; Returns: Json }
+      capture_worker_capacity: { Args: never; Returns: number }
       claim_due_schedules: {
         Args: { _limit?: number }
         Returns: {
@@ -1848,6 +2240,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      connector_allowed: { Args: { _connector: string }; Returns: boolean }
       create_draft_from_version: {
         Args: { _operator_uid: string; _source_version_id: string }
         Returns: string
@@ -1874,6 +2267,7 @@ export type Database = {
             Args: { _operator_uid: string; _worker_id: string }
             Returns: undefined
           }
+      evaluate_circuit_breakers: { Args: never; Returns: number }
       expire_pending_approvals: {
         Args: never
         Returns: {
@@ -1891,6 +2285,23 @@ export type Database = {
       has_tenant_access: {
         Args: { _tenant_id: string; _uid: string }
         Returns: boolean
+      }
+      ingest_trace_span: {
+        Args: {
+          _attributes: Json
+          _correlation_id: string
+          _duration_ms: number
+          _kind: string
+          _name: string
+          _parent_span_id: string
+          _run_id: string
+          _span_id: string
+          _status: string
+          _step_id: string
+          _tenant_id: string
+          _trace_id: string
+        }
+        Returns: string
       }
       pause_partition:
         | {
@@ -1920,6 +2331,10 @@ export type Database = {
           recovered_jobs: number
         }[]
       }
+      record_connector_result: {
+        Args: { _connector: string; _ok: boolean }
+        Returns: Json
+      }
       record_schedule_run: {
         Args: { _run_id: string; _schedule_id: string; _success: boolean }
         Returns: undefined
@@ -1937,6 +2352,10 @@ export type Database = {
             }
             Returns: undefined
           }
+      renew_job_lease: {
+        Args: { _job_id: string; _seconds?: number; _worker_id: string }
+        Returns: boolean
+      }
       resume_after_approval:
         | {
             Args: { _approval_id: string; _operator: string }
@@ -1969,6 +2388,7 @@ export type Database = {
         Args: { _version_id: string }
         Returns: Json
       }
+      worker_shutdown: { Args: { _worker_id: string }; Returns: number }
     }
     Enums: {
       operator_role: "admin" | "operator" | "observer" | "auditor"

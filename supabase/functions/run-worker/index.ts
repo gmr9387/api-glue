@@ -276,6 +276,11 @@ async function processJob(sb: SupabaseClient, job: Job) {
     updated_at: new Date().toISOString(),
   }).eq("connector", node.connector);
 
+  // Feed connector outcome into the circuit breaker so persistent failures
+  // trip isolation instead of amplifying retries downstream.
+  await sb.rpc("record_connector_result", { _connector: node.connector, _ok: result.ok });
+
+
   if (result.ok) {
     await sb.from("workflow_step_runs").update({
       state: "completed",

@@ -25,6 +25,7 @@ import { ControlPlanePanel } from '@/components/mission/ControlPlanePanel';
 import { RuntimeHealth } from '@/components/mission/RuntimeHealth';
 import { SecurityEventsFeed } from '@/components/mission/SecurityEventsFeed';
 import { ActivationPanel } from '@/components/mission/ActivationPanel';
+import { ScaleInfrastructurePanel } from '@/components/mission/ScaleInfrastructurePanel';
 
 const healthTone = (status: string) =>
   status === 'healthy' ? 'success'
@@ -121,6 +122,8 @@ export default function Dashboard() {
       <ControlPlanePanel />
 
       <ActivationPanel />
+
+      <ScaleInfrastructurePanel />
 
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
