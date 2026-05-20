@@ -1,5 +1,10 @@
-// Durable workflow runner. Persists a run + steps + events + checkpoints to
-// the telemetry-native tables. Demo posture: no auth, no real connector calls.
+// execute-workflow — now an ENQUEUE-only endpoint.
+//
+// Creates the workflow_run row, enqueues the root DAG nodes as
+// workflow_jobs, then triggers the durable worker to start draining.
+// No execution logic lives here anymore. All step execution happens in
+// run-worker through typed connector adapters.
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const cors = {
@@ -7,20 +12,7 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-interface StepDef {
-  name: string;
-  connector: string;
-  base_ms: number;
-}
-
-const DEMO_STEPS: StepDef[] = [
-  { name: "Validate payload", connector: "internal", base_ms: 180 },
-  { name: "Charge customer", connector: "stripe", base_ms: 420 },
-  { name: "Generate receipt", connector: "openai", base_ms: 520 },
-  { name: "Send notification", connector: "sendgrid", base_ms: 240 },
-];
+interface DagNode { id: string; dependsOn?: string[]; maxRetries?: number; }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -31,158 +23,70 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
+    const dag_id = body.dag_id ?? "demo.live";
     const workflow_name = body.workflow_name ?? "Live demo workflow";
     const correlation_id = body.correlation_id ?? crypto.randomUUID();
+    const payload = body.payload ?? {};
 
-    // Create run
-    const { data: runRow, error: runErr } = await sb
-      .from("workflow_runs")
-      .insert({
-        workflow_name,
-        workflow_id: "demo.live",
-        state: "running",
-        status: "running",
-        correlation_id,
-        payload: body.payload ?? {},
-        started_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+    const { data: dagRow, error: dagErr } = await sb.from("workflow_dags").select("*").eq("id", dag_id).single();
+    if (dagErr || !dagRow) {
+      return new Response(JSON.stringify({ error: `dag ${dag_id} not found` }), {
+        status: 404, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+    const graph = dagRow.graph as { nodes: DagNode[] };
+
+    const { data: runRow, error: runErr } = await sb.from("workflow_runs").insert({
+      workflow_name,
+      dag_id,
+      state: "queued",
+      status: "queued",
+      correlation_id,
+      payload,
+      started_at: new Date().toISOString(),
+    }).select().single();
     if (runErr) throw runErr;
     const run_id = runRow.id as string;
 
-    const emit = (type: string, severity: string, message: string, data: Record<string, unknown> = {}, step_id: string | null = null) =>
-      sb.from("workflow_events").insert({ run_id, step_id, type, severity, source: "execute-workflow", message, data });
+    await sb.from("workflow_events").insert({
+      run_id, type: "run.enqueued", severity: "info", source: "execute-workflow",
+      message: `Run enqueued: ${workflow_name}`, data: { correlation_id, dag_id },
+    });
 
-    await emit("run.started", "info", `Run started: ${workflow_name}`, { correlation_id });
+    // Enqueue root nodes (no dependencies)
+    const roots = graph.nodes.filter((n) => !n.dependsOn || n.dependsOn.length === 0);
+    const rows = roots.map((n) => ({
+      run_id,
+      dag_node_id: n.id,
+      state: "queued" as const,
+      max_retries: n.maxRetries ?? 3,
+      idempotency_key: `${run_id}:${n.id}`,
+      payload: { correlation_id, ...payload },
+    }));
+    if (rows.length > 0) {
+      const { error: jobsErr } = await sb.from("workflow_jobs").insert(rows);
+      if (jobsErr) throw jobsErr;
+    }
 
-    // Kick off steps async; respond immediately so the UI streams the rest live.
-    (async () => {
-      const t0 = Date.now();
-      let failed = false;
+    await sb.from("workflow_runs").update({ state: "running", status: "running" }).eq("id", run_id);
 
-      for (let i = 0; i < DEMO_STEPS.length; i++) {
-        const def = DEMO_STEPS[i];
-        const startedAt = new Date().toISOString();
+    // Kick the worker (fire-and-forget). Multiple invocations are safe due to
+    // FOR UPDATE SKIP LOCKED on claim_next_job.
+    const workerUrl = `${url}/functions/v1/run-worker`;
+    fetch(workerUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: "{}",
+    }).catch((e) => console.error("[execute-workflow] worker kick failed", e));
 
-        const { data: stepRow } = await sb
-          .from("workflow_step_runs")
-          .insert({
-            run_id,
-            step_index: i,
-            name: def.name,
-            connector: def.connector,
-            state: "running",
-            started_at: startedAt,
-          })
-          .select()
-          .single();
-        const step_id = stepRow?.id ?? null;
-
-        await emit("step.started", "info", `▶ ${def.name}`, { connector: def.connector, index: i }, step_id);
-
-        const jitter = Math.round(def.base_ms * (0.6 + Math.random() * 0.9));
-        await sleep(jitter);
-
-        // 8% chance to simulate retry, 4% chance terminal fail on last AI step
-        const willRetry = Math.random() < 0.08;
-        const willFail = def.connector === "openai" && Math.random() < 0.04;
-
-        if (willRetry) {
-          await emit("step.retry", "warn", `↻ ${def.name} retrying (transient connector error)`, { backoff_ms: 250 }, step_id);
-          await sleep(250);
-        }
-
-        if (willFail) {
-          await sb.from("workflow_step_runs").update({
-            state: "failed",
-            ended_at: new Date().toISOString(),
-            duration_ms: jitter,
-            retry_count: willRetry ? 1 : 0,
-            error: "Upstream model timeout",
-          }).eq("id", step_id!);
-
-          await emit("step.failed", "error", `✗ ${def.name} failed`, { error: "Upstream model timeout" }, step_id);
-          await sb.from("workflow_incidents").insert({
-            run_id,
-            severity: "error",
-            summary: `Step "${def.name}" failed: Upstream model timeout`,
-          });
-          failed = true;
-          break;
-        }
-
-        await sb.from("workflow_step_runs").update({
-          state: "completed",
-          ended_at: new Date().toISOString(),
-          duration_ms: jitter,
-          retry_count: willRetry ? 1 : 0,
-          result: { ok: true },
-        }).eq("id", step_id!);
-
-        await sb.from("workflow_checkpoints").insert({
-          run_id,
-          step_index: i,
-          snapshot: { step: def.name, ok: true },
-        });
-
-        // AI governance trace — only for AI-routed steps
-        if (def.connector === "openai") {
-          const confidence = Number((0.55 + Math.random() * 0.42).toFixed(2));
-          const escalated = confidence < 0.7;
-          const risk = confidence >= 0.85 ? "low" : confidence >= 0.7 ? "medium" : "high";
-          await sb.from("ai_decision_trace").insert({
-            run_id,
-            model: "openai/gpt-5-mini",
-            prompt: `Generate receipt for run ${run_id.slice(0, 8)}`,
-            decision: escalated ? "escalate to human reviewer" : "auto-approve receipt",
-            confidence,
-            escalated,
-            reasoning: escalated
-              ? "Confidence below 0.70 policy floor — routed to human override queue."
-              : "Confidence above policy floor; output matches expected schema and tone.",
-            risk,
-          });
-          await emit(
-            "ai.decision",
-            escalated ? "warn" : "info",
-            `AI ${escalated ? "escalated" : "auto-approved"} (${Math.round(confidence * 100)}%)`,
-            { confidence, escalated, risk },
-            step_id
-          );
-        }
-
-        await emit("step.completed", "info", `✓ ${def.name} (${jitter}ms)`, { duration_ms: jitter }, step_id);
-      }
-
-      const duration_ms = Date.now() - t0;
-      await sb.from("workflow_runs").update({
-        state: failed ? "failed" : "completed",
-        status: failed ? "failed" : "completed",
-        ended_at: new Date().toISOString(),
-        duration_ms,
-        result: failed ? null : { steps: DEMO_STEPS.length },
-        error: failed ? "Step failure" : null,
-      }).eq("id", run_id);
-
-      await emit(
-        failed ? "run.failed" : "run.completed",
-        failed ? "error" : "info",
-        failed ? `Run failed after ${duration_ms}ms` : `Run completed in ${duration_ms}ms`,
-        { duration_ms }
-      );
-    })().catch((e) => console.error("[execute-workflow] runner error", e));
-
-    return new Response(JSON.stringify({ run_id, correlation_id }), {
-      status: 202,
-      headers: { ...cors, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ run_id, correlation_id, enqueued: rows.length }), {
+      status: 202, headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
+    const message = e instanceof Error ? e.message : (typeof e === "object" ? JSON.stringify(e) : String(e));
     console.error("[execute-workflow] error", message);
     return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...cors, "Content-Type": "application/json" },
+      status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 });
