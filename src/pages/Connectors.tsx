@@ -55,6 +55,7 @@ export default function Connectors() {
                   <th className="py-2 pr-4">Connector</th>
                   <th className="py-2 pr-4">Status</th>
                   <th className="py-2 pr-4 text-right">Latency</th>
+                  <th className="py-2 pr-4 w-[120px]">Trend</th>
                   <th className="py-2 pr-4 text-right">Failure rate</th>
                   <th className="py-2 pr-4 text-right">Uptime</th>
                   <th className="py-2">Last successful execution</th>
@@ -84,6 +85,11 @@ export default function Connectors() {
                       </td>
                       <td className="py-2.5 pr-4 text-right font-mono text-xs text-muted-foreground tabular-nums">
                         {h.latencyMs != null ? `${h.latencyMs}ms` : '—'}
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        <div className="w-28">
+                          <Sparkline data={h.latencySeries} tone={t === 'success' ? 'success' : t === 'warning' ? 'warning' : t === 'info' ? 'info' : 'danger'} height={22} />
+                        </div>
                       </td>
                       <td className={`py-2.5 pr-4 text-right font-mono text-xs tabular-nums ${
                         h.failureRate > 0.5 ? 'text-danger' : h.failureRate > 0 ? 'text-warning' : 'text-muted-foreground'
