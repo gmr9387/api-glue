@@ -83,17 +83,9 @@ Deno.serve(async (req) => {
         error: e instanceof Error ? e.message : String(e),
         updated_at: new Date().toISOString(),
       }).eq("id", job.id);
-    } finally {
-      // Always release the worker's concurrency slot.
-      await sb.rpc("exec_sql_noop").catch(() => {});
-      await sb.from("worker_registry").update({
-        active_jobs: 0, last_heartbeat: new Date().toISOString(),
-      }).eq("worker_id", WORKER_ID).gt("active_jobs", 0).then(async () => {
-        // Use a safe decrement via raw update (best-effort)
-        await sb.rpc("pg_advisory_unlock_all").catch(() => {});
-      }).catch(() => {});
     }
   }
+
 
   // Final registry sync: recompute active_jobs from real in-flight jobs for this worker.
   const { count: inflight } = await sb
