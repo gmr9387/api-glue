@@ -76,6 +76,31 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Mission Control: live runtime telemetry */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-base font-semibold text-foreground">Mission Control</h2>
+            <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">runtime · operational intelligence</p>
+          </div>
+          <span className="text-[10px] font-mono text-muted-foreground tabular-nums">simulation · live tick</span>
+        </div>
+        <MissionControlMetrics />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 space-y-4">
+            <Heatmap />
+            <ConnectorTelemetryGrid />
+          </div>
+          <div className="space-y-4">
+            <QueueGauge />
+            <IncidentFeed />
+            <LiveTicker height={260} />
+          </div>
+        </div>
+        <DecisionWeaver />
+      </section>
+
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {demoMode ? (
           <>
