@@ -26,3 +26,15 @@ verify_jwt = false
 
 [functions.runtime-validate]
 verify_jwt = false
+
+[functions.webhook-ingress]
+verify_jwt = false
+
+[functions.scheduler-tick]
+verify_jwt = false
+
+[functions.manual-launch]
+verify_jwt = false
+
+[functions.event-trigger-router]
+verify_jwt = false
