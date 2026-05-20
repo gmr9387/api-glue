@@ -16,6 +16,8 @@ import Dashboard from "./pages/Dashboard";
 import Connectors from "./pages/Connectors";
 import Playground from "./pages/Playground";
 import Workflows from "./pages/Workflows";
+import WorkflowStudio from "./pages/WorkflowStudio";
+
 import AIBuilder from "./pages/AIBuilder";
 import Runs from "./pages/Runs";
 import Settings from "./pages/Settings";
