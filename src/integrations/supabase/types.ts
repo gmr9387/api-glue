@@ -279,6 +279,66 @@ export type Database = {
           },
         ]
       }
+      workflow_dags: {
+        Row: {
+          created_at: string
+          graph: Json
+          id: string
+          name: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          graph?: Json
+          id: string
+          name: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          graph?: Json
+          id?: string
+          name?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      workflow_dead_letter: {
+        Row: {
+          attempts: number
+          dag_node_id: string
+          id: string
+          job_id: string
+          last_error: string | null
+          moved_at: string
+          payload: Json
+          run_id: string
+        }
+        Insert: {
+          attempts: number
+          dag_node_id: string
+          id?: string
+          job_id: string
+          last_error?: string | null
+          moved_at?: string
+          payload?: Json
+          run_id: string
+        }
+        Update: {
+          attempts?: number
+          dag_node_id?: string
+          id?: string
+          job_id?: string
+          last_error?: string | null
+          moved_at?: string
+          payload?: Json
+          run_id?: string
+        }
+        Relationships: []
+      }
       workflow_events: {
         Row: {
           data: Json
@@ -332,25 +392,40 @@ export type Database = {
       }
       workflow_incidents: {
         Row: {
+          acknowledged_by: string | null
+          category: string | null
           closed_at: string | null
+          connector: string | null
           id: string
           opened_at: string
+          recovery_state: string
+          resolved_at: string | null
           run_id: string | null
           severity: string
           summary: string
         }
         Insert: {
+          acknowledged_by?: string | null
+          category?: string | null
           closed_at?: string | null
+          connector?: string | null
           id?: string
           opened_at?: string
+          recovery_state?: string
+          resolved_at?: string | null
           run_id?: string | null
           severity?: string
           summary: string
         }
         Update: {
+          acknowledged_by?: string | null
+          category?: string | null
           closed_at?: string | null
+          connector?: string | null
           id?: string
           opened_at?: string
+          recovery_state?: string
+          resolved_at?: string | null
           run_id?: string | null
           severity?: string
           summary?: string
@@ -365,11 +440,76 @@ export type Database = {
           },
         ]
       }
+      workflow_jobs: {
+        Row: {
+          backoff_until: string | null
+          completed_at: string | null
+          created_at: string
+          dag_node_id: string
+          error: string | null
+          id: string
+          idempotency_key: string
+          max_retries: number
+          payload: Json
+          priority: number
+          retry_attempt: number
+          run_id: string
+          scheduled_at: string
+          started_at: string | null
+          state: string
+          step_id: string | null
+          updated_at: string
+          worker_id: string | null
+        }
+        Insert: {
+          backoff_until?: string | null
+          completed_at?: string | null
+          created_at?: string
+          dag_node_id: string
+          error?: string | null
+          id?: string
+          idempotency_key: string
+          max_retries?: number
+          payload?: Json
+          priority?: number
+          retry_attempt?: number
+          run_id: string
+          scheduled_at?: string
+          started_at?: string | null
+          state?: string
+          step_id?: string | null
+          updated_at?: string
+          worker_id?: string | null
+        }
+        Update: {
+          backoff_until?: string | null
+          completed_at?: string | null
+          created_at?: string
+          dag_node_id?: string
+          error?: string | null
+          id?: string
+          idempotency_key?: string
+          max_retries?: number
+          payload?: Json
+          priority?: number
+          retry_attempt?: number
+          run_id?: string
+          scheduled_at?: string
+          started_at?: string | null
+          state?: string
+          step_id?: string | null
+          updated_at?: string
+          worker_id?: string | null
+        }
+        Relationships: []
+      }
       workflow_runs: {
         Row: {
+          concurrency_key: string | null
           context: Json
           correlation_id: string | null
           created_at: string
+          dag_id: string | null
           duration_ms: number | null
           ended_at: string | null
           error: string | null
@@ -382,14 +522,17 @@ export type Database = {
           state: string
           status: string
           steps: Json
+          tenant_id: string | null
           user_id: string
           workflow_id: string | null
           workflow_name: string
         }
         Insert: {
+          concurrency_key?: string | null
           context?: Json
           correlation_id?: string | null
           created_at?: string
+          dag_id?: string | null
           duration_ms?: number | null
           ended_at?: string | null
           error?: string | null
@@ -402,14 +545,17 @@ export type Database = {
           state?: string
           status?: string
           steps?: Json
+          tenant_id?: string | null
           user_id: string
           workflow_id?: string | null
           workflow_name: string
         }
         Update: {
+          concurrency_key?: string | null
           context?: Json
           correlation_id?: string | null
           created_at?: string
+          dag_id?: string | null
           duration_ms?: number | null
           ended_at?: string | null
           error?: string | null
@@ -422,6 +568,7 @@ export type Database = {
           state?: string
           status?: string
           steps?: Json
+          tenant_id?: string | null
           user_id?: string
           workflow_id?: string | null
           workflow_name?: string
@@ -430,13 +577,19 @@ export type Database = {
       }
       workflow_step_runs: {
         Row: {
+          attempt: number
           connector: string | null
+          connector_response: Json | null
           created_at: string
+          dag_node_id: string | null
           duration_ms: number | null
           ended_at: string | null
           error: string | null
           id: string
+          idempotency_key: string | null
+          inputs: Json
           name: string
+          outputs: Json | null
           payload: Json
           result: Json | null
           retry_count: number
@@ -446,13 +599,19 @@ export type Database = {
           step_index: number
         }
         Insert: {
+          attempt?: number
           connector?: string | null
+          connector_response?: Json | null
           created_at?: string
+          dag_node_id?: string | null
           duration_ms?: number | null
           ended_at?: string | null
           error?: string | null
           id?: string
+          idempotency_key?: string | null
+          inputs?: Json
           name: string
+          outputs?: Json | null
           payload?: Json
           result?: Json | null
           retry_count?: number
@@ -462,13 +621,19 @@ export type Database = {
           step_index: number
         }
         Update: {
+          attempt?: number
           connector?: string | null
+          connector_response?: Json | null
           created_at?: string
+          dag_node_id?: string | null
           duration_ms?: number | null
           ended_at?: string | null
           error?: string | null
           id?: string
+          idempotency_key?: string | null
+          inputs?: Json
           name?: string
+          outputs?: Json | null
           payload?: Json
           result?: Json | null
           retry_count?: number
@@ -492,7 +657,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_next_job: {
+        Args: { _worker_id: string }
+        Returns: {
+          backoff_until: string | null
+          completed_at: string | null
+          created_at: string
+          dag_node_id: string
+          error: string | null
+          id: string
+          idempotency_key: string
+          max_retries: number
+          payload: Json
+          priority: number
+          retry_attempt: number
+          run_id: string
+          scheduled_at: string
+          started_at: string | null
+          state: string
+          step_id: string | null
+          updated_at: string
+          worker_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "workflow_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never
