@@ -24,6 +24,7 @@ import { ObservabilityPanel } from '@/components/mission/ObservabilityPanel';
 import { ControlPlanePanel } from '@/components/mission/ControlPlanePanel';
 import { RuntimeHealth } from '@/components/mission/RuntimeHealth';
 import { SecurityEventsFeed } from '@/components/mission/SecurityEventsFeed';
+import { ActivationPanel } from '@/components/mission/ActivationPanel';
 
 const healthTone = (status: string) =>
   status === 'healthy' ? 'success'
@@ -118,6 +119,9 @@ export default function Dashboard() {
       <ConnectorMatrix />
 
       <ControlPlanePanel />
+
+      <ActivationPanel />
+
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ObservabilityPanel />

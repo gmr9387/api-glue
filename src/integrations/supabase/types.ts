@@ -181,6 +181,39 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_launches: {
+        Row: {
+          created_at: string
+          dag_id: string
+          id: string
+          operator_user_id: string
+          parameters: Json
+          reason: string | null
+          run_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          dag_id: string
+          id?: string
+          operator_user_id: string
+          parameters?: Json
+          reason?: string | null
+          run_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          dag_id?: string
+          id?: string
+          operator_user_id?: string
+          parameters?: Json
+          reason?: string | null
+          run_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -271,6 +304,51 @@ export type Database = {
         }
         Relationships: []
       }
+      runtime_triggers: {
+        Row: {
+          condition: Json
+          cooldown_seconds: number
+          created_at: string
+          created_by: string | null
+          dag_id: string
+          enabled: boolean
+          id: string
+          last_fired_at: string | null
+          max_depth: number
+          name: string
+          source_event_type: string
+          tenant_id: string
+        }
+        Insert: {
+          condition?: Json
+          cooldown_seconds?: number
+          created_at?: string
+          created_by?: string | null
+          dag_id: string
+          enabled?: boolean
+          id?: string
+          last_fired_at?: string | null
+          max_depth?: number
+          name: string
+          source_event_type: string
+          tenant_id: string
+        }
+        Update: {
+          condition?: Json
+          cooldown_seconds?: number
+          created_at?: string
+          created_by?: string | null
+          dag_id?: string
+          enabled?: boolean
+          id?: string
+          last_fired_at?: string | null
+          max_depth?: number
+          name?: string
+          source_event_type?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       saved_workflows: {
         Row: {
           created_at: string
@@ -298,6 +376,27 @@ export type Database = {
           nodes?: Json | null
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      scheduler_leases: {
+        Row: {
+          acquired_at: string
+          expires_at: string
+          holder: string
+          id: string
+        }
+        Insert: {
+          acquired_at?: string
+          expires_at: string
+          holder: string
+          id: string
+        }
+        Update: {
+          acquired_at?: string
+          expires_at?: string
+          holder?: string
+          id?: string
         }
         Relationships: []
       }
@@ -518,6 +617,172 @@ export type Database = {
           metadata?: Json
           name?: string
           slug?: string
+        }
+        Relationships: []
+      }
+      trigger_activations: {
+        Row: {
+          depth: number
+          fired_at: string
+          id: string
+          payload: Json
+          run_id: string | null
+          source_label: string | null
+          suppressed: boolean
+          suppressed_reason: string | null
+          tenant_id: string
+          trigger_id: string | null
+          trigger_kind: string
+        }
+        Insert: {
+          depth?: number
+          fired_at?: string
+          id?: string
+          payload?: Json
+          run_id?: string | null
+          source_label?: string | null
+          suppressed?: boolean
+          suppressed_reason?: string | null
+          tenant_id: string
+          trigger_id?: string | null
+          trigger_kind: string
+        }
+        Update: {
+          depth?: number
+          fired_at?: string
+          id?: string
+          payload?: Json
+          run_id?: string | null
+          source_label?: string | null
+          suppressed?: boolean
+          suppressed_reason?: string | null
+          tenant_id?: string
+          trigger_id?: string | null
+          trigger_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trigger_activations_trigger_id_fkey"
+            columns: ["trigger_id"]
+            isOneToOne: false
+            referencedRelation: "runtime_triggers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_deliveries: {
+        Row: {
+          body: Json
+          correlation_id: string | null
+          endpoint_id: string
+          error: string | null
+          headers: Json
+          id: string
+          idempotency_key: string | null
+          raw_body: string | null
+          received_at: string
+          run_id: string | null
+          signature_error: string | null
+          signature_valid: boolean | null
+          source_ip: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          body?: Json
+          correlation_id?: string | null
+          endpoint_id: string
+          error?: string | null
+          headers?: Json
+          id?: string
+          idempotency_key?: string | null
+          raw_body?: string | null
+          received_at?: string
+          run_id?: string | null
+          signature_error?: string | null
+          signature_valid?: boolean | null
+          source_ip?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          body?: Json
+          correlation_id?: string | null
+          endpoint_id?: string
+          error?: string | null
+          headers?: Json
+          id?: string
+          idempotency_key?: string | null
+          raw_body?: string | null
+          received_at?: string
+          run_id?: string | null
+          signature_error?: string | null
+          signature_valid?: boolean | null
+          source_ip?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_endpoint_id_fkey"
+            columns: ["endpoint_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_endpoints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_endpoints: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          dag_id: string
+          description: string | null
+          endpoint_key: string
+          id: string
+          paused: boolean
+          rate_limit_per_min: number
+          signature_header: string | null
+          signature_scheme: string | null
+          signing_secret: string | null
+          source: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          dag_id: string
+          description?: string | null
+          endpoint_key: string
+          id?: string
+          paused?: boolean
+          rate_limit_per_min?: number
+          signature_header?: string | null
+          signature_scheme?: string | null
+          signing_secret?: string | null
+          source?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          dag_id?: string
+          description?: string | null
+          endpoint_key?: string
+          id?: string
+          paused?: boolean
+          rate_limit_per_min?: number
+          signature_header?: string | null
+          signature_scheme?: string | null
+          signing_secret?: string | null
+          source?: string
+          tenant_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1065,6 +1330,69 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_schedules: {
+        Row: {
+          consecutive_failures: number
+          created_at: string
+          created_by: string | null
+          cron_expression: string | null
+          dag_id: string
+          id: string
+          interval_seconds: number | null
+          last_run_at: string | null
+          last_run_id: string | null
+          miss_policy: string
+          name: string
+          next_run_at: string
+          payload: Json
+          schedule_kind: string
+          state: string
+          tenant_id: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          consecutive_failures?: number
+          created_at?: string
+          created_by?: string | null
+          cron_expression?: string | null
+          dag_id: string
+          id?: string
+          interval_seconds?: number | null
+          last_run_at?: string | null
+          last_run_id?: string | null
+          miss_policy?: string
+          name: string
+          next_run_at?: string
+          payload?: Json
+          schedule_kind?: string
+          state?: string
+          tenant_id: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          consecutive_failures?: number
+          created_at?: string
+          created_by?: string | null
+          cron_expression?: string | null
+          dag_id?: string
+          id?: string
+          interval_seconds?: number | null
+          last_run_at?: string | null
+          last_run_id?: string | null
+          miss_policy?: string
+          name?: string
+          next_run_at?: string
+          payload?: Json
+          schedule_kind?: string
+          state?: string
+          tenant_id?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       workflow_step_runs: {
         Row: {
           attempt: number
@@ -1162,6 +1490,35 @@ export type Database = {
           archived: number
         }[]
       }
+      claim_due_schedules: {
+        Args: { _limit?: number }
+        Returns: {
+          consecutive_failures: number
+          created_at: string
+          created_by: string | null
+          cron_expression: string | null
+          dag_id: string
+          id: string
+          interval_seconds: number | null
+          last_run_at: string | null
+          last_run_id: string | null
+          miss_policy: string
+          name: string
+          next_run_at: string
+          payload: Json
+          schedule_kind: string
+          state: string
+          tenant_id: string
+          timezone: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "workflow_schedules"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_next_job: {
         Args: { _worker_id: string }
         Returns: {
@@ -1242,12 +1599,20 @@ export type Database = {
             }
             Returns: undefined
           }
+      pause_webhook: {
+        Args: { _endpoint_id: string; _operator_uid: string; _paused: boolean }
+        Returns: undefined
+      }
       reconcile_orphans: {
         Args: { _worker_stale_seconds?: number }
         Returns: {
           offline_workers: number
           recovered_jobs: number
         }[]
+      }
+      record_schedule_run: {
+        Args: { _run_id: string; _schedule_id: string; _success: boolean }
+        Returns: undefined
       }
       reject_approval:
         | {
@@ -1272,6 +1637,10 @@ export type Database = {
             Returns: undefined
           }
       runtime_health_report: { Args: never; Returns: Json }
+      set_schedule_state: {
+        Args: { _operator_uid: string; _schedule_id: string; _state: string }
+        Returns: undefined
+      }
       sweep_stale_jobs: {
         Args: { _lease_seconds?: number }
         Returns: {
