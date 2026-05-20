@@ -1,7 +1,7 @@
-// Replay engine — restores from the most recent checkpoint of a source run,
-// spawns a fresh run in `replaying` state, and re-emits step events with
-// `replay: true` correlation so the timeline can render side-by-side.
+// Replay engine — identity-bound: caller must be a tenant member on the
+// source run's tenant.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requireUser, logSecurity } from "../_shared/auth.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +13,14 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
+  const auth = await requireUser(req);
+  if (!auth.ok) {
+    return new Response(JSON.stringify({ error: auth.error }), {
+      status: auth.status, headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
+  const operator_uid = auth.ctx.userId;
+
   const url = Deno.env.get("SUPABASE_URL")!;
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const sb = createClient(url, key);
@@ -22,19 +30,36 @@ Deno.serve(async (req) => {
     const source_run_id: string | undefined = body.source_run_id;
     if (!source_run_id) {
       return new Response(JSON.stringify({ error: "source_run_id required" }), {
-        status: 400,
-        headers: { ...cors, "Content-Type": "application/json" },
+        status: 400, headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch source run + steps + checkpoints
     const { data: source } = await sb.from("workflow_runs").select("*").eq("id", source_run_id).single();
     if (!source) {
       return new Response(JSON.stringify({ error: "source run not found" }), {
-        status: 404,
-        headers: { ...cors, "Content-Type": "application/json" },
+        status: 404, headers: { ...cors, "Content-Type": "application/json" },
       });
     }
+
+    const { data: allowed } = await sb.rpc("has_tenant_access", {
+      _uid: operator_uid, _tenant_id: source.tenant_id,
+    });
+    if (!allowed) {
+      await logSecurity({
+        tenant_id: source.tenant_id, actor_user_id: operator_uid,
+        category: "authz.denied", severity: "warn",
+        subject_type: "run", subject_id: source_run_id,
+        message: "replay denied: caller not a tenant member",
+      });
+      return new Response(JSON.stringify({ error: "forbidden" }), {
+        status: 403, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+    await logSecurity({
+      tenant_id: source.tenant_id, actor_user_id: operator_uid,
+      category: "replay.access", subject_type: "run", subject_id: source_run_id,
+      message: "replay initiated",
+    });
     const { data: steps } = await sb
       .from("workflow_step_runs")
       .select("*")

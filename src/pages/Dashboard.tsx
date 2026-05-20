@@ -23,6 +23,7 @@ import { ApprovalQueue } from '@/components/mission/ApprovalQueue';
 import { ObservabilityPanel } from '@/components/mission/ObservabilityPanel';
 import { ControlPlanePanel } from '@/components/mission/ControlPlanePanel';
 import { RuntimeHealth } from '@/components/mission/RuntimeHealth';
+import { SecurityEventsFeed } from '@/components/mission/SecurityEventsFeed';
 
 const healthTone = (status: string) =>
   status === 'healthy' ? 'success'
