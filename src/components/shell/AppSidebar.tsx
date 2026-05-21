@@ -10,6 +10,9 @@ import {
   History,
   ShieldCheck,
   Boxes,
+  Rocket,
+  BookOpen,
+  Activity,
 } from 'lucide-react';
 
 import { NavLink, useLocation } from 'react-router-dom';
@@ -31,23 +34,33 @@ import { cn } from '@/lib/utils';
 
 const sections = [
   {
-    label: 'Build',
+    label: 'Get started',
     items: [
       { title: 'Dashboard', url: '/', icon: LayoutDashboard, end: true },
-      { title: 'Connectors', url: '/connectors', icon: Plug },
-      { title: 'Playground', url: '/playground', icon: Play },
+      { title: 'Quickstart', url: '/quickstart', icon: Rocket },
+      { title: 'Docs', url: '/docs', icon: BookOpen },
     ],
   },
   {
-    label: 'Automate',
+    label: 'Build',
+    items: [
+      { title: 'Connectors', url: '/connectors', icon: Plug },
+      { title: 'Playground', url: '/playground', icon: Play },
+      { title: 'AI Builder', url: '/ai-builder', icon: Sparkles },
+    ],
+  },
+  {
+    label: 'Orchestrate',
     items: [
       { title: 'Workflows', url: '/workflows', icon: GitBranch },
       { title: 'Studio', url: '/studio', icon: Workflow },
       { title: 'Platform', url: '/platform', icon: Boxes },
-
-
-
-      { title: 'AI Builder', url: '/ai-builder', icon: Sparkles },
+    ],
+  },
+  {
+    label: 'Observe',
+    items: [
+      { title: 'Inspector', url: '/inspector', icon: Activity },
       { title: 'Runs', url: '/runs', icon: History },
       { title: 'Governance', url: '/governance', icon: ShieldCheck },
     ],
@@ -75,12 +88,12 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2.5">
           <div className="h-9 w-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-elev-sm">
-            <span className="font-display font-bold text-sm">A</span>
+            <span className="font-display font-bold text-sm">V</span>
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <h1 className="font-display font-semibold text-sm text-foreground tracking-tight truncate">API Unity OS</h1>
-              <p className="text-[10px] font-mono text-muted-foreground">v1.0.0</p>
+              <h1 className="font-display font-semibold text-sm text-foreground tracking-tight truncate">Valtaris Glue</h1>
+              <p className="text-[10px] font-mono text-muted-foreground">orchestration runtime</p>
             </div>
           )}
         </div>

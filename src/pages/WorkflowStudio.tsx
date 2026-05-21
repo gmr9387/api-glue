@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { DAGEditor } from "@/components/mission/DAGEditor";
+import { WorkflowHealthPanel } from "@/components/mission/WorkflowHealthPanel";
 import { Plus, GitBranch, History, AlertTriangle, RotateCcw, Archive, FileEdit, Workflow } from "lucide-react";
 import { toast } from "sonner";
 
@@ -168,6 +169,7 @@ export default function WorkflowStudio() {
                 </CardContent>
               </Card>
 
+              <WorkflowHealthPanel />
               <DAGEditor />
             </>
           ) : (
