@@ -21,6 +21,7 @@ import Platform from "./pages/Platform";
 import RuntimeInspector from "./pages/RuntimeInspector";
 import Quickstart from "./pages/Quickstart";
 import Docs from "./pages/Docs";
+import Reliability from "./pages/Reliability";
 
 import AIBuilder from "./pages/AIBuilder";
 import Runs from "./pages/Runs";
@@ -58,6 +59,7 @@ function AppShell() {
               <Route path="/studio" element={<WorkflowStudio />} />
               <Route path="/platform" element={<Platform />} />
               <Route path="/inspector" element={<RuntimeInspector />} />
+              <Route path="/reliability" element={<Reliability />} />
               <Route path="/quickstart" element={<Quickstart />} />
               <Route path="/docs" element={<Docs />} />
 

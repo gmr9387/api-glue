@@ -13,6 +13,7 @@ import {
   Rocket,
   BookOpen,
   Activity,
+  ShieldAlert,
 } from 'lucide-react';
 
 import { NavLink, useLocation } from 'react-router-dom';
@@ -61,6 +62,7 @@ const sections = [
     label: 'Observe',
     items: [
       { title: 'Inspector', url: '/inspector', icon: Activity },
+      { title: 'Reliability', url: '/reliability', icon: ShieldAlert },
       { title: 'Runs', url: '/runs', icon: History },
       { title: 'Governance', url: '/governance', icon: ShieldCheck },
     ],
