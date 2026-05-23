@@ -476,9 +476,9 @@ export function detectAnomalies(runs: Run[], steps: Step[], breakers: Breaker[],
   }
 
   // Approval surge
-  const apNow = approvals.filter((a) => now - new Date(a.created_at).getTime() < 60 * 60_000).length;
+  const apNow = approvals.filter((a) => now - new Date(a.requested_at).getTime() < 60 * 60_000).length;
   const apPrev = approvals.filter((a) => {
-    const t = now - new Date(a.created_at).getTime();
+    const t = now - new Date(a.requested_at).getTime();
     return t >= 60 * 60_000 && t < 2 * 60 * 60_000;
   }).length;
   if (apNow >= 5 && apNow >= apPrev * 2 + 1) {
