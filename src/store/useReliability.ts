@@ -123,8 +123,8 @@ export const useReliability = create<ReliabilityState>((set, get) => ({
       supabase.from("workflow_knowledge").select("*"),
       supabase.from("runtime_anomalies").select("*").order("detected_at", { ascending: false }).limit(200),
       supabase.from("connector_circuit_breakers").select("connector,state,failure_count,success_count,last_failure_at,opened_at"),
-      supabase.from("workflow_approvals").select("id,run_id,state,created_at").gte("created_at", since).limit(1000),
-      supabase.from("rollback_executions" as any).select("id,run_id,created_at").gte("created_at", since).limit(500),
+      supabase.from("workflow_approvals").select("id,run_id,state,requested_at").gte("requested_at", since).limit(1000),
+      supabase.from("workflow_rollbacks").select("id,run_id,started_at").gte("started_at", since).limit(500),
     ]);
 
     const runs = (runsR.data ?? []) as any[];
