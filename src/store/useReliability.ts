@@ -80,7 +80,7 @@ type Breaker = {
 };
 
 type Approval = { id: string; run_id: string; state: string; requested_at: string };
-type Rollback = { id: string; run_id: string; created_at: string };
+type Rollback = { id: string; run_id: string; started_at: string };
 
 interface ReliabilityState {
   loading: boolean;
