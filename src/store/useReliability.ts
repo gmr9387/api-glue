@@ -79,7 +79,7 @@ type Breaker = {
   opened_at: string | null;
 };
 
-type Approval = { id: string; run_id: string; state: string; created_at: string };
+type Approval = { id: string; run_id: string; state: string; requested_at: string };
 type Rollback = { id: string; run_id: string; created_at: string };
 
 interface ReliabilityState {
