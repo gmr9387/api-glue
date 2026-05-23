@@ -988,6 +988,54 @@ export type Database = {
         }
         Relationships: []
       }
+      runtime_anomalies: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          baseline_value: number | null
+          detected_at: string
+          evidence: Json
+          explanation: string
+          id: string
+          kind: string
+          metric_value: number | null
+          scope: string
+          severity: string
+          subject: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          baseline_value?: number | null
+          detected_at?: string
+          evidence?: Json
+          explanation: string
+          id?: string
+          kind: string
+          metric_value?: number | null
+          scope: string
+          severity?: string
+          subject?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          baseline_value?: number | null
+          detected_at?: string
+          evidence?: Json
+          explanation?: string
+          id?: string
+          kind?: string
+          metric_value?: number | null
+          scope?: string
+          severity?: string
+          subject?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
       runtime_audit_log: {
         Row: {
           action: string
@@ -2265,6 +2313,48 @@ export type Database = {
           updated_at?: string
           worker_id?: string | null
           workflow_version_id?: string | null
+        }
+        Relationships: []
+      }
+      workflow_knowledge: {
+        Row: {
+          business_outcome: string | null
+          created_at: string
+          definition_id: string
+          id: string
+          known_risks: string | null
+          operational_notes: string | null
+          owner: string | null
+          purpose: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          business_outcome?: string | null
+          created_at?: string
+          definition_id: string
+          id?: string
+          known_risks?: string | null
+          operational_notes?: string | null
+          owner?: string | null
+          purpose?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          business_outcome?: string | null
+          created_at?: string
+          definition_id?: string
+          id?: string
+          known_risks?: string | null
+          operational_notes?: string | null
+          owner?: string | null
+          purpose?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
